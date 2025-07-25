@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/addons/loaders/MTLLoader.js'
+import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import { TransformControls } from 'three/addons/controls/TransformControls.js'
 import { createOrbitControls, createCubeControl } from './controls'
 import { createGround } from './ground'
@@ -29,6 +30,20 @@ export async function loadModel(
     error: (error: any) => void;
   }
 ): Promise<ThreeInstance> {
+  // 自动旋转相关变量和函数，必须放在顶部
+  let autoRotate = false
+  let autoRotateAngle = 0
+  const autoRotateSpeed = 0.01
+  let autoRotateRadius = 0
+  let group: THREE.Group | null = null
+  function startAutoRotate() {
+    autoRotate = true
+    autoRotateRadius = 0 // 下次animate时用当前相机参数初始化
+  }
+  function stopAutoRotate() {
+    autoRotate = false
+  }
+
   // 场景、相机、渲染器
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000)
@@ -96,7 +111,7 @@ export async function loadModel(
     createLabeledFace(0xff0000, '右'), // 右
     createLabeledFace(0x00ff00, '左'), // 左
     createLabeledFace(0x0000ff, '上'), // 上
-    createLabeledFace(0xffff00, '下'), // 下
+    createLabeledFace(0x000000, '下'), // 下
     createLabeledFace(0xff00ff, '前'), // 前
     createLabeledFace(0x00ffff, '后')  // 后
   ]
@@ -273,6 +288,32 @@ export async function loadModel(
           }
         })
       }
+    } else if (model.type === 'stl') {
+      // 加载STL模型
+      const loader = new STLLoader()
+      const geometry = await loader.loadAsync(model.file, (xhr) => {
+        if (xhr.lengthComputable) {
+          const progress = Math.floor((xhr.loaded / xhr.total) * 70) + 10
+          callbacks.loading(progress)
+        }
+      })
+      // 判断是否有颜色
+      let material: THREE.Material
+      if ((geometry as any).hasColors) {
+        material = new THREE.MeshPhongMaterial({
+          opacity: (geometry as any).alpha,
+          vertexColors: true
+        })
+      } else {
+        material = new THREE.MeshPhongMaterial({
+          color: 0xd5d5d5,
+          specular: 0x494949,
+          shininess: 200
+        })
+      }
+      object = new THREE.Mesh(geometry, material)
+      object.castShadow = true
+      object.receiveShadow = true
     } else {
       throw new Error('不支持的模型类型')
     }
@@ -283,6 +324,17 @@ export async function loadModel(
 
     callbacks.loading(80)
 
+    // 加载完成后，包裹到group
+    group = new THREE.Group()
+    if (object) {
+      // 计算包围盒中心
+      const box = new THREE.Box3().setFromObject(object)
+      const center = box.getCenter(new THREE.Vector3())
+      object.position.sub(center) // 让object居中于group原点
+      group.add(object)
+      if (group) scene.add(group)
+    }
+
     // 设置阴影
     object.traverse(child => {
       if ((child as THREE.Mesh).isMesh) {
@@ -291,42 +343,29 @@ export async function loadModel(
       }
     })
 
-    // 自动调整模型大小和位置
-    const box = new THREE.Box3().setFromObject(object)
-    const size = box.getSize(new THREE.Vector3())
-    const center = box.getCenter(new THREE.Vector3())
-
-    // 调整模型大小 - 确保模型足够大，占据屏幕中心位置
-    const maxDim = Math.max(size.x, size.y, size.z)
-    const targetSize = 3 // 目标大小，确保模型不会太小
-
+    // 自动调整模型大小 - 先缩放object
+    const box0 = new THREE.Box3().setFromObject(object)
+    const size0 = box0.getSize(new THREE.Vector3())
+    const maxDim = Math.max(size0.x, size0.y, size0.z)
+    const targetSize = 3
     if (maxDim < targetSize) {
-      // 如果模型太小，放大它
       const scale = targetSize / maxDim
       object.scale.set(scale, scale, scale)
     } else if (maxDim > 10) {
-      // 如果模型太大，缩小它
       const scale = 10 / maxDim
       object.scale.set(scale, scale, scale)
     }
-
-    // 重新计算包围盒，因为我们可能已经调整了模型大小
-    box.setFromObject(object)
-    box.getCenter(center)
-    box.getSize(size)
-
-    // 将模型放在地面上
-    object.position.y = -box.min.y
-
-    // 将模型放在场景中心
-    object.position.x = -center.x
-    object.position.z = -center.z
-
+    // 只做包围盒底部贴地
+    const box = new THREE.Box3().setFromObject(object)
+    object.position.y -= box.min.y
+    
     // 模型已准备好，可以初始化立方体控制器
 
     scene.add(object)
     callbacks.loading(100)
     callbacks.loaded()
+    // 加载完成后自动旋转
+    startAutoRotate()
   } catch (error) {
     console.error('模型加载失败:', error)
     callbacks.error(error)
@@ -335,6 +374,9 @@ export async function loadModel(
 
   // 创建控制器
   const controls = createOrbitControls(camera, renderer)
+  // 防止极点穿透
+  controls.minPolarAngle = 0.01
+  controls.maxPolarAngle = Math.PI - 0.01
 
   // 处理窗口大小变化
   const handleResize = () => {
@@ -349,16 +391,22 @@ export async function loadModel(
   let animationId: number
   function animate() {
     animationId = requestAnimationFrame(animate)
-
-    // 更新控制器
+    // 自动公转：相机围绕controls.target旋转，半径固定
+    if (autoRotate && controls) {
+      if (autoRotateRadius === 0) {
+        autoRotateRadius = camera.position.distanceTo(controls.target)
+        autoRotateAngle = Math.atan2(camera.position.z - controls.target.z, camera.position.x - controls.target.x)
+      }
+      autoRotateAngle += autoRotateSpeed
+      camera.position.x = Math.cos(autoRotateAngle) * autoRotateRadius + controls.target.x
+      camera.position.z = Math.sin(autoRotateAngle) * autoRotateRadius + controls.target.z
+      camera.lookAt(controls.target)
+    }
     controls.update()
-
-    // 更新动画
     if (mixer) {
       const delta = clock.getDelta()
       mixer.update(delta)
     }
-
     renderer.render(scene, camera)
   }
   animate()
@@ -400,13 +448,15 @@ export async function loadModel(
         newTransformControls.dispose();
         return null;
       }
-      transformControls.setMode(mode);
-      transformControls.setSize(0.7);
+      if (transformControls) {
+        transformControls.setMode(mode);
+        transformControls.setSize(0.7);
 
-      // 当使用变换控制器时，暂时禁用轨道控制器，避免冲突
-      transformControls.addEventListener('dragging-changed', (event) => {
-        controls.enabled = !event.value;
-      });
+        // 当使用变换控制器时，暂时禁用轨道控制器，避免冲突
+        transformControls.addEventListener('dragging-changed', (event) => {
+          controls.enabled = !event.value;
+        });
+      }
 
       // 不要直接添加TransformControls到场景中
       // 而是使用其内部的对象
@@ -721,6 +771,11 @@ export async function loadModel(
       function updateCube() {
         if (!cubeRenderer) return;
 
+        // 跟随主场景group旋转
+        if (group) {
+          cube.quaternion.copy(group.quaternion)
+        }
+
         // 计算当前相机的方向，确定哪个面应该激活
         const cameraPosition = camera.position.clone();
         const targetPosition = controls.target.clone();
@@ -840,27 +895,24 @@ export async function loadModel(
 
     // 更新变换
     function updateTransform(position: number[], rotation: number[], scale: number) {
-      if (!object) return;
-
-      // 更新位置
+      if (!group) return;
+      // 位置
       if (position && position.length === 3) {
-        const x = position[0] !== undefined ? position[0] : object.position.x;
-        const y = position[1] !== undefined ? position[1] : object.position.y;
-        const z = position[2] !== undefined ? position[2] : object.position.z;
-        object.position.set(x, y, z);
+        const x = position[0] !== undefined ? position[0] : group.position.x;
+        const y = position[1] !== undefined ? position[1] : group.position.y;
+        const z = position[2] !== undefined ? position[2] : group.position.z;
+        group.position.set(x, y, z);
       }
-
-      // 更新旋转
+      // 旋转
       if (rotation && rotation.length === 3) {
-        const x = rotation[0] !== undefined ? rotation[0] : object.rotation.x;
-        const y = rotation[1] !== undefined ? rotation[1] : object.rotation.y;
-        const z = rotation[2] !== undefined ? rotation[2] : object.rotation.z;
-        object.rotation.set(x, y, z);
+        const x = rotation[0] !== undefined ? rotation[0] : group.rotation.x;
+        const y = rotation[1] !== undefined ? rotation[1] : group.rotation.y;
+        const z = rotation[2] !== undefined ? rotation[2] : group.rotation.z;
+        group.rotation.set(x, y, z);
       }
-
-      // 更新缩放
+      // 缩放
       if (scale !== undefined) {
-        object.scale.set(scale, scale, scale);
+        group.scale.set(scale, scale, scale);
       }
     }
 
@@ -925,6 +977,11 @@ export async function loadModel(
 
       // 清理控制器
       controls.dispose()
+
+      // 销毁资源时，记得移除group
+      if (group && scene.children.includes(group)) {
+        scene.remove(group)
+      }
     }
 
     return {
@@ -933,6 +990,8 @@ export async function loadModel(
       initCubeControl,
       setTransformMode,
       dispose,
-      updateTransform
+      updateTransform,
+      startAutoRotate,
+      stopAutoRotate
     }
   } 

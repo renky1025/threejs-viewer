@@ -5,7 +5,7 @@
 // 模型数据类型
 export interface Model {
   name: string;
-  type: 'gltf' | 'glb' | 'obj' | 'fbx' | 'json';
+  type: 'gltf' | 'glb' | 'obj' | 'fbx' | 'json' | 'stl';
   file: string;
   category: string;
   thumbnail?: string;
@@ -25,4 +25,6 @@ export interface ThreeInstance {
   setTransformMode: (mode: TransformMode) => void;
   dispose: () => void;
   updateTransform: (position: number[], rotation: number[], scale: number) => void;
+  startAutoRotate: () => void;
+  stopAutoRotate: () => void;
 }

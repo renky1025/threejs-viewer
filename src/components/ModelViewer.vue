@@ -25,6 +25,13 @@
             <el-icon><Monitor /></el-icon>
           </el-button>
         </el-tooltip>
+        <!-- 播放/暂停按钮 -->
+        <el-tooltip :content="isRotating ? '暂停旋转' : '播放旋转'" placement="bottom">
+          <el-button @click="toggleRotate">
+            <el-icon v-if="!isRotating">▶️</el-icon>
+            <el-icon v-else>⏸️</el-icon>
+          </el-button>
+        </el-tooltip>
       </el-button-group>
     </div>
   </div>
@@ -57,6 +64,7 @@ const scale = ref(1)
 
 // 变换模式
 const transformMode = ref<'translate' | 'rotate' | 'scale'>('translate')
+const isRotating = ref(true)
 
 /**
  * 设置变换模式
@@ -155,11 +163,33 @@ function addCubeControl(dom: HTMLDivElement) {
   }
 }
 
+/**
+ * 切换自动旋转
+ */
+function toggleRotate() {
+  if (!threeInstance) return
+  if (isRotating.value) {
+    threeInstance.stopAutoRotate()
+    isRotating.value = false
+  } else {
+    threeInstance.startAutoRotate()
+    isRotating.value = true
+  }
+}
+
 // 暴露组件方法
 defineExpose({ reset, addCubeControl })
 
 // 监听属性变化，重新初始化
 watch(() => [props.model, props.ground], init, { immediate: true })
+
+// 在模型加载后自动旋转
+watch(() => loading.value, (val) => {
+  if (!val && threeInstance) {
+    threeInstance.startAutoRotate()
+    isRotating.value = true
+  }
+})
 
 // 生命周期钩子
 onMounted(init)

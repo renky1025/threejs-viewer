@@ -12,6 +12,10 @@ export function setupLighting(scene: THREE.Scene): void {
   const ambientLight = new THREE.AmbientLight(0x404040, 0.4)
   scene.add(ambientLight)
   
+  // 半球光 - 模拟天空和地面
+  const hemisphereLight = new THREE.HemisphereLight( 0x8d7c7c, 0x494966, 3 )
+  scene.add(hemisphereLight)
+
   // 主方向光 - 模拟太阳光
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1)
   directionalLight.position.set(5, 10, 5)

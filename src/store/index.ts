@@ -41,6 +41,13 @@ export const useModelStore = defineStore('model', {
         file: '/models/pressure.json', 
         category: 'data',
         thumbnail: '/assets/thumbnails/webgl_geometry_colors_lookuptable.jpg'
+      },
+      {
+        name: 'pr2', 
+        type: 'stl', 
+        file: '/models/colored.stl', 
+        category: 'data',
+        thumbnail: '/assets/thumbnails/webgl_loader_stl.jpg'
       }
     ] as Model[]
   }),
