@@ -364,8 +364,8 @@ export async function loadModel(
     scene.add(object)
     callbacks.loading(100)
     callbacks.loaded()
-    // 加载完成后自动旋转
-    startAutoRotate()
+    // 加载完成后自动旋转（延后，确保controls已初始化）
+    setTimeout(() => { startAutoRotate() }, 0)
   } catch (error) {
     console.error('模型加载失败:', error)
     callbacks.error(error)
@@ -918,50 +918,42 @@ export async function loadModel(
 
     // 销毁资源
     function dispose() {
-      // 停止动画循环
-      cancelAnimationFrame(animationId)
-
-      // 停止立方体动画
-      if (cubeAnimationId) {
-        cancelAnimationFrame(cubeAnimationId);
+      // 停止主动画循环
+      if (animationId) {
+        cancelAnimationFrame(animationId)
       }
-
+      // 停止立方体动画
+      if (typeof cubeAnimationId !== 'undefined' && cubeAnimationId) {
+        cancelAnimationFrame(cubeAnimationId)
+      }
       // 移除立方体容器
       if (cubeContainer && container.contains(cubeContainer)) {
-        container.removeChild(cubeContainer);
+        container.removeChild(cubeContainer)
       }
-
       // 清理立方体渲染器
       if (cubeRenderer) {
-        cubeRenderer.dispose();
+        cubeRenderer.dispose()
       }
-
       // 移除事件监听器
       window.removeEventListener('resize', handleResize)
-
       // 清理立方体控制器
       if (cleanupCubeControl) {
         cleanupCubeControl()
       }
-
       // 清理变换控制器
       if (transformControls) {
         try {
-          scene.remove(transformControls as any);
-          transformControls.dispose();
-          transformControls = null;
+          scene.remove(transformControls as any)
+          transformControls.dispose()
+          transformControls = null
         } catch (error) {
-          console.warn('TransformControls清理失败:', error);
+          console.warn('TransformControls清理失败:', error)
         }
       }
-
-      // 清理场景
+      // 清理场景所有Mesh的资源
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
-          if (object.geometry) {
-            object.geometry.dispose()
-          }
-
+          if (object.geometry) object.geometry.dispose()
           if (object.material) {
             if (Array.isArray(object.material)) {
               object.material.forEach(material => material.dispose())
@@ -971,17 +963,21 @@ export async function loadModel(
           }
         }
       })
-
       // 清理渲染器
       renderer.dispose()
-
       // 清理控制器
       controls.dispose()
-
-      // 销毁资源时，记得移除group
+      // 移除group
       if (group && scene.children.includes(group)) {
         scene.remove(group)
       }
+      // 断开所有引用
+      group = null
+      object = null
+      mixer = null
+      cubeContainer = null
+      cubeRenderer = null
+      cleanupCubeControl = null
     }
 
     return {
