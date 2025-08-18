@@ -1,8 +1,8 @@
 # 3D 模型查看器
 
 基于 Three.js 和 Vue 3 的 3D 模型查看器，支持多种 3D 模型格式的加载、查看和交互。
-[list model](/images/listimage.png)
-[list model](/images/image.png)
+![列表](/images/listimage.png "列表")
+![3d viewer](/images/image.png "3d viewer")
 
 ## 技术栈
 
