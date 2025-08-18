@@ -13,6 +13,111 @@ import { createRealisticSky } from './skybox'
 import type { Model, GroundType, ThreeInstance, TransformMode } from './types'
 
 /**
+ * 添加三轴显示（带箭头）
+ * @param scene 场景
+ * @param object 模型对象
+ */
+function addAxesHelper(scene: THREE.Scene, object: THREE.Object3D) {
+  // 计算模型的包围盒
+  const box = new THREE.Box3().setFromObject(object)
+  const size = box.getSize(new THREE.Vector3())
+  const center = box.getCenter(new THREE.Vector3())
+  
+  // 根据模型大小调整轴的长度
+  const axisLength = Math.max(size.x, size.y, size.z) * 0.8
+  
+  // 创建带箭头的三轴
+  const axesGroup = new THREE.Group()
+  
+  // X轴 - 红色
+  const xGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(axisLength, 0, 0)
+  ])
+  const xMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 })
+  const xLine = new THREE.Line(xGeometry, xMaterial)
+  
+  // X轴箭头
+  const xArrowGeometry = new THREE.ConeGeometry(axisLength * 0.03, axisLength * 0.05, 8)
+  const xArrow = new THREE.Mesh(xArrowGeometry, xMaterial)
+  xArrow.position.set(axisLength, 0, 0)
+  xArrow.rotation.z = -Math.PI / 2
+  
+  // Y轴 - 绿色
+  const yGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, axisLength, 0)
+  ])
+  const yMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 })
+  const yLine = new THREE.Line(yGeometry, yMaterial)
+  
+  // Y轴箭头
+  const yArrowGeometry = new THREE.ConeGeometry(axisLength * 0.03, axisLength * 0.05, 8)
+  const yArrow = new THREE.Mesh(yArrowGeometry, yMaterial)
+  yArrow.position.set(0, axisLength, 0)
+  
+  // Z轴 - 蓝色
+  const zGeometry = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, axisLength)
+  ])
+  const zMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff })
+  const zLine = new THREE.Line(zGeometry, zMaterial)
+  
+  // Z轴箭头
+  const zArrowGeometry = new THREE.ConeGeometry(axisLength * 0.03, axisLength * 0.05, 8)
+  const zArrow = new THREE.Mesh(zArrowGeometry, zMaterial)
+  zArrow.position.set(0, 0, axisLength)
+  zArrow.rotation.x = Math.PI / 2
+  
+  // 添加标签
+  const createLabel = (text: string, color: number, position: THREE.Vector3) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 64
+    canvas.height = 32
+    const context = canvas.getContext('2d')
+    if (context) {
+      context.fillStyle = `#${color.toString(16).padStart(6, '0')}`
+      context.font = 'bold 16px Arial'
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.fillText(text, 32, 16)
+      
+      const texture = new THREE.CanvasTexture(canvas)
+      const material = new THREE.SpriteMaterial({ map: texture })
+      const sprite = new THREE.Sprite(material)
+      sprite.position.copy(position)
+      sprite.scale.set(0.5, 0.25, 1)
+      return sprite
+    }
+    return null
+  }
+  
+  // 添加轴标签
+  const xLabel = createLabel('X', 0xff0000, new THREE.Vector3(axisLength * 1.2, 0, 0))
+  const yLabel = createLabel('Y', 0x00ff00, new THREE.Vector3(0, axisLength * 1.2, 0))
+  const zLabel = createLabel('Z', 0x0000ff, new THREE.Vector3(0, 0, axisLength * 1.2))
+  
+  // 组装三轴
+  axesGroup.add(xLine, xArrow, yLine, yArrow, zLine, zArrow)
+  if (xLabel) axesGroup.add(xLabel)
+  if (yLabel) axesGroup.add(yLabel)
+  if (zLabel) axesGroup.add(zLabel)
+  
+  // 将轴放置在模型中心
+  axesGroup.position.copy(center)
+  
+  // 添加到场景
+  scene.add(axesGroup)
+  
+  // 保存引用以便后续清理
+  if (!scene.userData.axesHelper) {
+    scene.userData.axesHelper = []
+  }
+  scene.userData.axesHelper.push(axesGroup)
+}
+
+/**
  * 加载3D模型
  * @param container 容器DOM元素
  * @param model 模型信息
@@ -332,7 +437,7 @@ export async function loadModel(
       const center = box.getCenter(new THREE.Vector3())
       object.position.sub(center) // 让object居中于group原点
       group.add(object)
-      if (group) scene.add(group)
+      scene.add(group)
     }
 
     // 设置阴影
@@ -361,11 +466,17 @@ export async function loadModel(
     
     // 模型已准备好，可以初始化立方体控制器
 
-    scene.add(object)
+    // 添加三轴显示（基于group，因为object已经在group中了）
+    addAxesHelper(scene, group)
+    
     callbacks.loading(100)
     callbacks.loaded()
-    // 加载完成后自动旋转（延后，确保controls已初始化）
-    setTimeout(() => { startAutoRotate() }, 0)
+    
+    // 加载完成后自动创建变换控制器（默认平移模式）
+    setTimeout(() => { 
+      createModelTransformControls('translate')
+      startAutoRotate() 
+    }, 100)
   } catch (error) {
     console.error('模型加载失败:', error)
     callbacks.error(error)
@@ -420,85 +531,141 @@ export async function loadModel(
 
   // 创建变换控制器
   function createModelTransformControls(mode: TransformMode = 'translate') {
-    if (!object || !camera) {
-      console.warn('无法创建变换控制器: 对象或相机不存在');
+    if (!group || !camera) {
+      console.warn('无法创建变换控制器: 组或相机不存在');
       return null;
     }
 
-      // 如果已经存在控制器，先清理
-      if (transformControls) {
-        try {
-          // 尝试从场景中移除
-          transformControls.detach();
-          transformControls.dispose();
-        } catch (e) {
-          console.warn('清理旧控制器失败:', e);
-        }
-      }
-
-      // 创建新的控制器
-      console.log('创建新的TransformControls');
-      const newTransformControls = new TransformControls(camera, renderer.domElement);
-
-      // 尝试附加对象
+    // 如果已经存在控制器，先清理
+    if (transformControls) {
       try {
-        newTransformControls.attach(object);
+        transformControls.detach();
+        scene.remove(transformControls as any);
+        transformControls.dispose();
+        transformControls = null;
       } catch (e) {
-        console.error('无法附加对象到控制器:', e);
-        newTransformControls.dispose();
-        return null;
+        console.warn('清理旧控制器失败:', e);
       }
-      if (transformControls) {
-        transformControls.setMode(mode);
-        transformControls.setSize(0.7);
+    }
 
-        // 当使用变换控制器时，暂时禁用轨道控制器，避免冲突
-        transformControls.addEventListener('dragging-changed', (event) => {
-          controls.enabled = !event.value;
-        });
+    // 创建新的控制器
+    console.log('创建新的TransformControls');
+    const newTransformControls = new TransformControls(camera, renderer.domElement);
+    
+    // 设置模式
+    newTransformControls.setMode(mode);
+    newTransformControls.setSize(0.8);
+    
+    // 启用键盘快捷键
+    newTransformControls.setTranslationSnap(0.1); // 平移步长
+    newTransformControls.setRotationSnap(Math.PI / 12); // 旋转步长（15度）
+    newTransformControls.setScaleSnap(0.1); // 缩放步长
+    
+    // 用户操作指南：
+    // - 拖拽红色箭头：沿X轴移动/旋转/缩放
+    // - 拖拽绿色箭头：沿Y轴移动/旋转/缩放  
+    // - 拖拽蓝色箭头：沿Z轴移动/旋转/缩放
+    // - 拖拽平面：在平面上移动/旋转/缩放
+    // - 拖拽中心球：自由移动/旋转/缩放
+    
+    // 设置变换控制器的性能选项
+    newTransformControls.showX = true; // 显示X轴控制器
+    newTransformControls.showY = true; // 显示Y轴控制器
+    newTransformControls.showZ = true; // 显示Z轴控制器
+
+    // 当使用变换控制器时，暂时禁用轨道控制器，避免冲突
+    newTransformControls.addEventListener('dragging-changed', (event) => {
+      controls.enabled = !event.value;
+    });
+
+    // 监听变换完成事件，更新模型状态
+    newTransformControls.addEventListener('objectChange', () => {
+      if (group) {
+        const transformInfo = {
+          position: group.position.toArray(),
+          rotation: [group.rotation.x, group.rotation.y, group.rotation.z],
+          scale: group.scale.x
+        };
+        console.log('模型变换完成:', transformInfo);
+        
+        // 可以在这里添加一些性能监控或状态保存逻辑
+        // 比如保存到localStorage或者发送到服务器
       }
+    });
 
-      // 不要直接添加TransformControls到场景中
-      // 而是使用其内部的对象
+    // 监听拖拽开始和结束事件
+    newTransformControls.addEventListener('dragging-changed', (event) => {
+      if (event.value) {
+        console.log('开始拖拽变换控制器');
+        // 可以在这里添加一些视觉反馈，比如改变鼠标样式
+      } else {
+        console.log('结束拖拽变换控制器');
+        // 可以在这里添加一些完成后的反馈
+      }
+    });
+
+    // 尝试附加到group（而不是object）
+    try {
+      console.log('尝试附加组到变换控制器:', group);
+      newTransformControls.attach(group);
+      transformControls = newTransformControls;
+      
+      // 将变换控制器添加到场景中
+      scene.add(newTransformControls as any);
+      
+      console.log('TransformControls创建成功并附加到组');
+      return newTransformControls;
+    } catch (e) {
+      console.error('无法附加组到控制器:', e);
+      // 尝试附加到object作为备选方案
       try {
-        // 检查transformControls是否有效
-        if (!transformControls) {
-          console.warn('TransformControls创建失败');
-          return null;
+        if (object) {
+          console.log('尝试附加对象到变换控制器:', object);
+          newTransformControls.attach(object);
+          transformControls = newTransformControls;
+          scene.add(newTransformControls as any);
+          console.log('TransformControls创建成功并附加到对象');
+          return newTransformControls;
         }
-
-        // 不需要手动添加到场景，TransformControls会自己处理
-        // scene.add(transformControls as any); // 这行代码会导致错误
-
-        return transformControls;
-      } catch (error) {
-        console.warn('TransformControls处理失败:', error);
-        if (transformControls) {
-          transformControls.dispose();
-        }
-        return null;
+      } catch (e2) {
+        console.error('备选方案也失败:', e2);
       }
+      newTransformControls.dispose();
+      return null;
+    }
   }
   // 设置变换模式
   function setTransformMode(mode: TransformMode) {
-      try {
-        if (transformControls) {
-          console.log('设置变换模式:', mode);
-          transformControls.setMode(mode);
+    try {
+      if (transformControls) {
+        console.log('设置变换模式:', mode);
+        transformControls.setMode(mode);
+      } else {
+        console.log('创建变换控制器，模式:', mode);
+        // 创建新的控制器
+        const newControls = createModelTransformControls(mode);
+        if (newControls) {
+          transformControls = newControls;
         } else {
-          console.log('创建变换控制器，模式:', mode);
-          // 创建新的控制器
-          const newControls = createModelTransformControls(mode);
-          if (newControls) {
-            transformControls = newControls;
-          } else {
-            console.warn('无法创建变换控制器');
-          }
+          console.warn('无法创建变换控制器，尝试重新创建...');
+          // 尝试重新创建
+          setTimeout(() => {
+            const retryControls = createModelTransformControls(mode);
+            if (retryControls) {
+              transformControls = retryControls;
+              console.log('重试创建变换控制器成功');
+            } else {
+              console.error('重试创建变换控制器失败');
+              // 可以在这里添加用户友好的错误提示
+              // 比如显示一个通知或者弹窗
+            }
+          }, 100);
         }
-      } catch (error) {
-        console.error('设置变换模式失败:', error);
       }
+    } catch (error) {
+      console.error('设置变换模式失败:', error);
     }
+  }
 
     // 立方体控制器
     let cleanupCubeControl: (() => void) | null = null;
@@ -661,7 +828,9 @@ export async function loadModel(
         const intersects = raycaster.intersectObject(cube);
 
         if (intersects.length > 0) {
-          const faceIndex = intersects[0].face?.materialIndex;
+          // 使用faceIndex或者默认值，兼容不同版本的Three.js
+          const faceIndex = (intersects[0] as any).face?.materialIndex ?? 
+                           (intersects[0] as any).materialIndex ?? 4; // 默认前面
           let targetView = 'front';
 
           // 根据材质索引确定面
@@ -943,12 +1112,39 @@ export async function loadModel(
       // 清理变换控制器
       if (transformControls) {
         try {
+          transformControls.detach()
           scene.remove(transformControls as any)
           transformControls.dispose()
           transformControls = null
         } catch (error) {
           console.warn('TransformControls清理失败:', error)
         }
+      }
+      
+      // 清理三轴显示
+      if (scene.userData.axesHelper) {
+        scene.userData.axesHelper.forEach((axes: THREE.Group) => {
+          scene.remove(axes)
+          // 遍历Group中的所有子对象进行清理
+          axes.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              if (child.geometry) child.geometry.dispose()
+              if (child.material) {
+                if (Array.isArray(child.material)) {
+                  child.material.forEach(material => material.dispose())
+                } else {
+                  child.material.dispose()
+                }
+              }
+            } else if (child instanceof THREE.Line) {
+              if (child.geometry) child.geometry.dispose()
+              if (child.material) child.material.dispose()
+            } else if (child instanceof THREE.Sprite) {
+              if (child.material) child.material.dispose()
+            }
+          })
+        })
+        scene.userData.axesHelper = []
       }
       // 清理场景所有Mesh的资源
       scene.traverse((object) => {

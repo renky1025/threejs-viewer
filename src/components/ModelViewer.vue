@@ -5,17 +5,17 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar" v-if="!loading">
       <el-button-group>
-        <el-tooltip content="平移模式" placement="bottom">
+        <el-tooltip content="平移模式 (拖拽移动模型)" placement="bottom">
           <el-button :type="transformMode === 'translate' ? 'primary' : ''" @click="setTransformMode('translate')">
             <el-icon><Rank /></el-icon>
           </el-button>
         </el-tooltip>
-        <el-tooltip content="旋转模式" placement="bottom">
+        <el-tooltip content="旋转模式 (拖拽旋转模型)" placement="bottom">
           <el-button :type="transformMode === 'rotate' ? 'primary' : ''" @click="setTransformMode('rotate')">
             <el-icon><Refresh /></el-icon>
           </el-button>
         </el-tooltip>
-        <el-tooltip content="缩放模式" placement="bottom">
+        <el-tooltip content="缩放模式 (拖拽缩放模型)" placement="bottom">
           <el-button :type="transformMode === 'scale' ? 'primary' : ''" @click="setTransformMode('scale')">
             <el-icon><ZoomIn /></el-icon>
           </el-button>
@@ -29,10 +29,18 @@
         <el-tooltip :content="isRotating ? '暂停旋转' : '播放旋转'" placement="bottom">
           <el-button @click="toggleRotate">
             <el-icon v-if="!isRotating">▶️</el-icon>
+            <el-icon v-if="!isRotating">▶️</el-icon>
             <el-icon v-else>⏸️</el-icon>
           </el-button>
         </el-tooltip>
       </el-button-group>
+      
+      <!-- 使用提示 -->
+      <div class="usage-tip">
+        <el-tooltip content="按住Shift键拖拽可旋转视角，拖拽变换控制器可操作模型，WASD键可精确控制" placement="bottom">
+          <span class="tip-text">💡 拖拽变换控制器操作模型</span>
+        </el-tooltip>
+      </div>
     </div>
   </div>
 </template>
@@ -74,6 +82,8 @@ function setTransformMode(mode: 'translate' | 'rotate' | 'scale') {
   transformMode.value = mode
   if (threeInstance) {
     threeInstance.setTransformMode?.(mode)
+    // 更新变换控制器显示
+    updateTransform()
   }
 }
 
@@ -239,5 +249,22 @@ onBeforeUnmount(() => {
 
 .toolbar :deep(.el-button i) {
   font-size: 18px;
+}
+
+/* 使用提示样式 */
+.usage-tip {
+  margin-left: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.tip-text {
+  font-size: 12px;
+  color: #666;
+  cursor: help;
+  padding: 4px 8px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 </style>
