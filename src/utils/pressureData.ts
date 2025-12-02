@@ -16,7 +16,7 @@ try {
     private min: number = 0
     private max: number = 1
     
-    constructor(colorMap?: string, steps?: number) {
+    constructor(colorMap?: string, _steps?: number) {
       this.colorMap = colorMap || 'rainbow'
     }
     
@@ -175,7 +175,9 @@ export async function createPressureVisualization(
       map: new THREE.CanvasTexture(lut.createCanvas())
     })
   )
-  sprite.material.map.colorSpace = THREE.SRGBColorSpace
+  if (sprite.material.map) {
+    sprite.material.map.colorSpace = THREE.SRGBColorSpace
+  }
   sprite.scale.x = 0.125
   sprite.scale.y = 0.5
   sprite.position.set(0.9, 0, 0) // 右侧位置
@@ -209,7 +211,8 @@ export async function createPressureVisualization(
     // 如果没有颜色属性，创建默认颜色
     if (!geometry.attributes.color) {
       const colors = []
-      for (let i = 0, n = geometry.attributes.position.count; i < n; ++i) {
+      const positionAttr = geometry.attributes.position
+      for (let i = 0, n = positionAttr ? positionAttr.count : 0; i < n; ++i) {
         colors.push(1, 1, 1)
       }
       geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
@@ -237,7 +240,7 @@ export async function createPressureVisualization(
    * @param mesh 网格
    * @param lut 查找表
    */
-  function updateColors(mesh: THREE.Mesh, lut: Lut) {
+  function updateColors(mesh: THREE.Mesh, lut: typeof Lut.prototype) {
     if (!mesh.geometry) return
     
     const geometry = mesh.geometry
@@ -256,15 +259,21 @@ export async function createPressureVisualization(
       
       color.copy(lut.getColor(colorValue)).convertSRGBToLinear()
       
-      colors.setXYZ(i, color.r, color.g, color.b)
+      if (colors) {
+        colors.setXYZ(i, color.r, color.g, color.b)
+      }
     }
     
-    colors.needsUpdate = true
+    if (colors) {
+      colors.needsUpdate = true
+    }
     
     // 更新图例
     const map = sprite.material.map
-    lut.updateCanvas(map.image)
-    map.needsUpdate = true
+    if (map) {
+      lut.updateCanvas(map.image)
+      map.needsUpdate = true
+    }
   }
   
   // 返回可视化对象

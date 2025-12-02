@@ -38,7 +38,7 @@ const props = defineProps<{
 }>()
 
 // 定义事件
-const emit = defineEmits<{
+defineEmits<{
   (e: 'select', model: Model): void
 }>()
 

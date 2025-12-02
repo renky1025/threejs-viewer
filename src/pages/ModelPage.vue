@@ -62,8 +62,8 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useModelStore } from '../store'
-import ModelViewer from '@/components/ModelViewer.vue'
-import PressureViewer from '@/components/PressureViewer.vue'
+import ModelViewer from '@/components/ModelViewer/index.vue'
+import PressureViewer from '@/components/PressureViewer/index.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
 import type { GroundType } from '../utils/types'
 import { ArrowLeftBold } from '@element-plus/icons-vue'
@@ -117,30 +117,6 @@ function goBack() {
   router.push('/') 
 }
 
-/**
- * 重置视图
- */
-function resetView() { 
-  viewerRef.value?.reset() 
-}
-
-/**
- * 获取分类名称
- * @param category 分类代码
- * @returns 分类名称
- */
-function getCategoryName(category: string): string {
-  switch (category) {
-    case 'helmet':
-      return '头盔'
-    case 'character':
-      return '人物'
-    case 'furniture':
-      return '家具'
-    default:
-      return category
-  }
-}
 </script>
 
 <style scoped>

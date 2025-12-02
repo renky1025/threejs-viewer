@@ -1,0 +1,181 @@
+<template>
+  <div class="model-viewer">
+    <div ref="container" class="viewer-container"></div>
+    
+    <!-- 顶部工具栏 -->
+    <ViewerToolbar
+      v-if="!loading"
+      :transform-mode="transformMode"
+      :is-rotating="isRotating"
+      @set-mode="setTransformMode"
+      @reset="reset"
+      @toggle-rotate="toggleRotate"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
+import { loadModel } from '../../utils/threeLoader'
+import type { Model, GroundType, ThreeInstance, TransformMode } from '../../core/types'
+import ViewerToolbar from './ViewerToolbar.vue'
+
+// Props
+const props = defineProps<{ 
+  model: Model
+  ground: GroundType 
+}>()
+
+// Emits
+const emit = defineEmits(['loading', 'loaded', 'error'])
+
+// Refs
+const container = ref<HTMLDivElement>()
+const loading = ref(true)
+let threeInstance: ThreeInstance | null = null
+
+// 模型变换状态
+const position = reactive({ x: 0, y: 0, z: 0 })
+const rotation = reactive({ x: 0, y: 0, z: 0 })
+const scale = ref(1)
+
+// 变换模式
+const transformMode = ref<TransformMode>('translate')
+const isRotating = ref(true)
+
+/**
+ * 设置变换模式
+ */
+function setTransformMode(mode: TransformMode) {
+  transformMode.value = mode
+  if (threeInstance) {
+    threeInstance.setTransformMode?.(mode)
+    updateTransform()
+  }
+}
+
+/**
+ * 初始化Three.js场景
+ */
+async function init() {
+  if (!container.value || !props.model) return
+  
+  try {
+    // 重置变换状态
+    position.x = position.y = position.z = 0
+    rotation.x = rotation.y = rotation.z = 0
+    scale.value = 1
+    
+    // 加载模型
+    threeInstance = await loadModel(container.value, props.model, props.ground, {
+      loading: (progress: number) => emit('loading', progress),
+      loaded: () => {
+        loading.value = false
+        emit('loaded')
+        // 初始化立方体控制器
+        setTimeout(() => {
+          threeInstance?.initCubeControl?.()
+        }, 100)
+      },
+      error: (error: unknown) => {
+        loading.value = false
+        emit('error', error)
+      }
+    })
+    
+    // 设置初始变换模式
+    if (threeInstance) {
+      threeInstance.setTransformMode?.(transformMode.value)
+    }
+  } catch (e) {
+    console.error('模型加载失败:', e)
+    loading.value = false
+    emit('error', e)
+  }
+}
+
+/**
+ * 重置视图
+ */
+function reset() {
+  position.x = position.y = position.z = 0
+  rotation.x = rotation.y = rotation.z = 0
+  scale.value = 1
+  threeInstance?.resetView?.()
+}
+
+/**
+ * 更新模型变换
+ */
+function updateTransform() {
+  if (threeInstance) {
+    threeInstance.updateTransform(
+      [position.x, position.y, position.z],
+      [rotation.x, rotation.y, rotation.z],
+      scale.value
+    )
+  }
+}
+
+/**
+ * 添加立方体控制器
+ */
+function addCubeControl(dom: HTMLDivElement) {
+  if (threeInstance) {
+    threeInstance.addCubeControl(dom)
+  }
+}
+
+/**
+ * 切换自动旋转
+ */
+function toggleRotate() {
+  if (!threeInstance) return
+  if (isRotating.value) {
+    threeInstance.stopAutoRotate()
+    isRotating.value = false
+  } else {
+    threeInstance.startAutoRotate()
+    isRotating.value = true
+  }
+}
+
+// 暴露组件方法
+defineExpose({ reset, addCubeControl })
+
+// 监听属性变化
+watch(() => [props.model, props.ground], init, { immediate: true })
+
+watch(() => loading.value, (val) => {
+  if (!val && threeInstance) {
+    threeInstance.startAutoRotate()
+    isRotating.value = true
+  }
+})
+
+// 生命周期
+onMounted(init)
+onBeforeUnmount(() => {
+  if (threeInstance) {
+    threeInstance.dispose()
+    threeInstance = null
+  }
+})
+</script>
+
+<style scoped>
+.model-viewer {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.viewer-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+</style>
