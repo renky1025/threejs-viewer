@@ -70,49 +70,9 @@ export async function loadModel(
   // 设置灯光
   setupLighting(scene)
 
-  // ==================== 加载模型 ====================
-  const modelLoader = new ModelLoader()
-
-  try {
-    const result = await modelLoader.load(model, callbacks)
-    object = result.object
-    mixer = result.mixer
-
-    if (!object) {
-      throw new Error('模型加载失败')
-    }
-
-    callbacks.loading(80)
-
-    // 创建 Group 包裹模型
-    group = new THREE.Group()
-    ModelProcessor.centerModel(object)
-    group.add(object)
-    scene.add(group)
-
-    // 设置阴影
-    ModelProcessor.setupShadows(object)
-
-    // 自动调整模型大小
-    ModelProcessor.autoScale(object)
-
-    // 模型底部贴地
-    ModelProcessor.groundModel(object)
-
-    // 不再添加地板坐标轴，TransformControls 已经提供了移动坐标
-
-    callbacks.loading(100)
-    callbacks.loaded()
-
-    // 加载完成后自动创建变换控制器
-    setTimeout(() => {
-      createTransformControls('translate')
-    }, 100)
-  } catch (error) {
-    console.error('模型加载失败:', error)
-    callbacks.error(error)
-    throw error
-  }
+  // ==================== 创建 bbox 占位符 ====================
+  let bboxPlaceholder: THREE.Group | null = ModelProcessor.createBboxPlaceholder()
+  scene.add(bboxPlaceholder)
 
   // ==================== 变换控制器 ====================
   const transformManager = new TransformControllerManager(
@@ -128,10 +88,8 @@ export async function loadModel(
       return null
     }
 
-    // 将 TransformControls 附加到 group
     const transformControls = transformManager.create(group, mode)
     if (transformControls) {
-      // 拖拽时停止自动旋转
       transformControls.addEventListener('dragging-changed', (event) => {
         if (event.value) {
           autoRotate = false
@@ -196,7 +154,6 @@ export async function loadModel(
     const isDraggingTransform = transformControls?.dragging ?? false
     
     if (autoRotate && group && !isDraggingTransform) {
-      // 旋转模型本身，而不是相机
       group.rotation.y += autoRotateSpeed
     }
 
@@ -210,7 +167,71 @@ export async function loadModel(
     renderer.render(scene, camera)
   }
 
+  // 立即开始渲染（场景已有天空盒、地面、灯光和 bbox）
   animate()
+
+  // ==================== 加载模型 ====================
+  const modelLoader = new ModelLoader()
+
+  try {
+    const result = await modelLoader.load(model, callbacks)
+    object = result.object
+    mixer = result.mixer
+
+    if (!object) {
+      throw new Error('模型加载失败')
+    }
+
+    callbacks.loading(80)
+
+    // 创建 Group 包裹模型
+    group = new THREE.Group()
+    ModelProcessor.centerModel(object)
+    group.add(object)
+
+    // 设置阴影
+    ModelProcessor.setupShadows(object)
+
+    // 自动调整模型大小
+    ModelProcessor.autoScale(object)
+
+    // 模型底部贴地
+    ModelProcessor.groundModel(object)
+
+    // 更新 bbox 到实际模型尺寸
+    if (bboxPlaceholder) {
+      ModelProcessor.updateBboxFromModel(bboxPlaceholder, object)
+    }
+
+    callbacks.loading(90)
+
+    // 添加模型到场景 (初始透明)
+    scene.add(group)
+
+    // 淡出 bbox 并渐进显示模型
+    await Promise.all([
+      bboxPlaceholder ? ModelProcessor.fadeOutBbox(bboxPlaceholder, 400) : Promise.resolve(),
+      ModelProcessor.revealModel(object, 600)
+    ])
+    bboxPlaceholder = null
+
+    callbacks.loading(100)
+    callbacks.loaded()
+
+    // 加载完成后自动创建变换控制器
+    setTimeout(() => {
+      createTransformControls('translate')
+    }, 100)
+  } catch (error) {
+    // 清理 bbox
+    if (bboxPlaceholder) {
+      scene.remove(bboxPlaceholder)
+      bboxPlaceholder = null
+    }
+    console.error('模型加载失败:', error)
+    callbacks.error(error)
+    throw error
+  }
 
   // ==================== 复位视图 ====================
   function resetView() {

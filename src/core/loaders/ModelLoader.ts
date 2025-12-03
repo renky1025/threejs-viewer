@@ -264,6 +264,170 @@ export class ModelLoader {
  */
 export class ModelProcessor {
   /**
+   * 创建透明包围盒占位符
+   * @param size 包围盒尺寸 (默认估算值)
+   * @returns 包围盒网格对象
+   */
+  static createBboxPlaceholder(size: THREE.Vector3 = new THREE.Vector3(2, 2, 2)): THREE.Group {
+    const group = new THREE.Group()
+    group.name = 'bbox-placeholder'
+
+    // 创建线框盒子
+    const geometry = new THREE.BoxGeometry(size.x, size.y, size.z)
+    const edges = new THREE.EdgesGeometry(geometry)
+    const lineMaterial = new THREE.LineBasicMaterial({ 
+      color: 0x409eff, 
+      transparent: true, 
+      opacity: 0.6 
+    })
+    const wireframe = new THREE.LineSegments(edges, lineMaterial)
+    wireframe.position.y = size.y / 2
+    group.add(wireframe)
+
+    // 创建半透明填充
+    const fillMaterial = new THREE.MeshBasicMaterial({
+      color: 0x409eff,
+      transparent: true,
+      opacity: 0.05,
+      side: THREE.DoubleSide
+    })
+    const fillMesh = new THREE.Mesh(geometry.clone(), fillMaterial)
+    fillMesh.position.y = size.y / 2
+    group.add(fillMesh)
+
+    return group
+  }
+
+  /**
+   * 根据模型更新包围盒占位符
+   */
+  static updateBboxFromModel(bbox: THREE.Group, object: THREE.Object3D): void {
+    const box = new THREE.Box3().setFromObject(object)
+    const size = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+
+    // 更新线框和填充的尺寸
+    bbox.children.forEach(child => {
+      if (child instanceof THREE.LineSegments || child instanceof THREE.Mesh) {
+        child.geometry.dispose()
+        child.geometry = child instanceof THREE.LineSegments 
+          ? new THREE.EdgesGeometry(new THREE.BoxGeometry(size.x, size.y, size.z))
+          : new THREE.BoxGeometry(size.x, size.y, size.z)
+        child.position.copy(center)
+      }
+    })
+  }
+
+  /**
+   * 淡出并移除包围盒
+   */
+  static fadeOutBbox(bbox: THREE.Group, duration: number = 500): Promise<void> {
+    return new Promise((resolve) => {
+      const startTime = Date.now()
+      const materials: THREE.Material[] = []
+      
+      bbox.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh || (child as THREE.LineSegments).isLineSegments) {
+          const obj = child as THREE.Mesh | THREE.LineSegments
+          if (obj.material) {
+            materials.push(obj.material as THREE.Material)
+          }
+        }
+      })
+
+      function animate() {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        const opacity = 1 - progress
+
+        materials.forEach(mat => {
+          if ('opacity' in mat) {
+            (mat as THREE.MeshBasicMaterial).opacity *= opacity
+          }
+        })
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          // 清理
+          bbox.traverse((child) => {
+            if ((child as THREE.Mesh).geometry) {
+              (child as THREE.Mesh).geometry.dispose()
+            }
+            if ((child as THREE.Mesh).material) {
+              const mat = (child as THREE.Mesh).material
+              if (Array.isArray(mat)) {
+                mat.forEach(m => m.dispose())
+              } else {
+                mat.dispose()
+              }
+            }
+          })
+          bbox.parent?.remove(bbox)
+          resolve()
+        }
+      }
+
+      animate()
+    })
+  }
+
+  /**
+   * 渐进显示模型 (从透明到不透明)
+   */
+  static async revealModel(object: THREE.Object3D, duration: number = 600): Promise<void> {
+    const materials: { material: THREE.Material; originalOpacity: number }[] = []
+    
+    // 收集所有材质并设置为透明
+    object.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        mats.forEach(mat => {
+          if (mat) {
+            const originalOpacity = (mat as THREE.MeshStandardMaterial).opacity ?? 1
+            materials.push({ material: mat, originalOpacity })
+            mat.transparent = true
+            ;(mat as THREE.MeshStandardMaterial).opacity = 0
+          }
+        })
+      }
+    })
+
+    // 渐进显示
+    return new Promise((resolve) => {
+      const startTime = Date.now()
+
+      function animate() {
+        const elapsed = Date.now() - startTime
+        const progress = Math.min(elapsed / duration, 1)
+        // 使用 easeOutCubic 缓动
+        const eased = 1 - Math.pow(1 - progress, 3)
+
+        materials.forEach(({ material, originalOpacity }) => {
+          ;(material as THREE.MeshStandardMaterial).opacity = eased * originalOpacity
+        })
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          // 恢复原始透明度设置
+          materials.forEach(({ material, originalOpacity }) => {
+            ;(material as THREE.MeshStandardMaterial).opacity = originalOpacity
+            // 如果原本不透明，恢复 transparent 为 false
+            if (originalOpacity >= 1) {
+              material.transparent = false
+            }
+          })
+          resolve()
+        }
+      }
+
+      animate()
+    })
+  }
+
+  /**
    * 设置模型阴影
    */
   static setupShadows(object: THREE.Object3D): void {
