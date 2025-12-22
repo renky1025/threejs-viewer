@@ -38,7 +38,7 @@
 import { computed } from 'vue'
 import type { SceneNode } from '../../core/types'
 
-const props = defineProps<{
+defineProps<{
   nodes: SceneNode[]
 }>()
 

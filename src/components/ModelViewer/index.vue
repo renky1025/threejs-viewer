@@ -270,7 +270,7 @@ function handleNodeLock(id: string, locked: boolean) {
 }
 
 // 暴露组件方法
-defineExpose({ reset, addCubeControl })
+defineExpose({ reset, addCubeControl, updateTransform })
 
 // 监听属性变化
 watch(() => [props.model, props.ground], init, { immediate: true })
