@@ -53,7 +53,7 @@ export const useModelStore = defineStore('model', {
         type: 'step',
         file: '/models/Rescue Robot 2 HKAMEL.STEP',
         category: 'data',
-        thumbnail: '/assets/thumbnails/hatchet.png'
+        thumbnail: '/assets/thumbnails/l2992-rescue-robot-83431.jpg'
       }
     ] as Model[]
   }),
