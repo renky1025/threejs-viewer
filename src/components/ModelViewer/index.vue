@@ -90,7 +90,6 @@ function setTransformMode(mode: TransformMode) {
   transformMode.value = mode
   if (threeInstance) {
     threeInstance.setTransformMode?.(mode)
-    updateTransform()
   }
 }
 

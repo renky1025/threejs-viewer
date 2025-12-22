@@ -321,14 +321,6 @@ export async function loadModel(
     group = new THREE.Group()
     group.add(object)
 
-    // 针对特定 STEP 模型修正上下翻转（仅 Rescue Robot 2 HKAMEL）
-    if (
-      effectiveModel.type === 'step' &&
-      effectiveModel.file.includes('Rescue Robot 2 HKAMEL')
-    ) {
-      group.rotation.x = Math.PI
-    }
-
     // 设置阴影
     ModelProcessor.setupShadows(group)
 
@@ -365,6 +357,12 @@ export async function loadModel(
 
     callbacks.loading(100)
     callbacks.loaded()
+
+    // 针对 STEP/IGES 模型，加载完成后自动复位视图，
+    // 避免初始视角异常导致模型显示为全黑，需要手动点击“重置视图”才能恢复
+    if (effectiveModel.type === 'step' || effectiveModel.type === 'iges') {
+      resetView()
+    }
 
     // 加载完成后自动创建变换控制器
     setTimeout(() => {

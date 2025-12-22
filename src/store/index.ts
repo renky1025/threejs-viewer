@@ -39,21 +39,27 @@ export const useModelStore = defineStore('model', {
         name: 'pressure', 
         type: 'json', 
         file: '/models/pressure.json', 
-        category: 'data',
+        category: '压力数据',
         thumbnail: '/assets/thumbnails/webgl_geometry_colors_lookuptable.jpg'
       },
       {
         name: 'pr2', 
         type: 'stl', 
         file: '/models/colored.stl', 
-        category: 'data',
+        category: '零件',
         thumbnail: '/assets/thumbnails/webgl_loader_stl.jpg'
       },{
         name: 'Rescue Robot 2 HKAMEL',
         type: 'step',
         file: '/models/Rescue Robot 2 HKAMEL.STEP',
-        category: 'data',
+        category: '机器',
         thumbnail: '/assets/thumbnails/l2992-rescue-robot-83431.jpg'
+      },{
+        name: 'Oillamp',
+        type: 'iges',
+        file: '/models/Oillamp.igs',
+        category: '灯',
+        thumbnail: '/assets/thumbnails/oillamp400x400_full.jpg'
       }
     ] as Model[]
   }),
