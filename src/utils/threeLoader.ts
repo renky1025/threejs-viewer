@@ -321,6 +321,14 @@ export async function loadModel(
     group = new THREE.Group()
     group.add(object)
 
+    // 针对特定 STEP 模型修正上下翻转（仅 Rescue Robot 2 HKAMEL）
+    if (
+      effectiveModel.type === 'step' &&
+      effectiveModel.file.includes('Rescue Robot 2 HKAMEL')
+    ) {
+      group.rotation.x = Math.PI
+    }
+
     // 设置阴影
     ModelProcessor.setupShadows(group)
 
