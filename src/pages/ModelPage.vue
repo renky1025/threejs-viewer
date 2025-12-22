@@ -65,7 +65,8 @@ import { useModelStore } from '../store'
 import ModelViewer from '@/components/ModelViewer/index.vue'
 import PressureViewer from '@/components/PressureViewer/index.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
-import type { GroundType } from '../utils/types'
+import type { GroundType, Model } from '../utils/types'
+import { buildRemoteModelFromQuery } from '../utils/remoteModel'
 import { ArrowLeftBold } from '@element-plus/icons-vue'
 
 // 路由
@@ -75,8 +76,16 @@ const router = useRouter()
 // 模型存储
 const store = useModelStore()
 
-// 当前模型
-const model = computed(() => store.models.find(m => m.name === route.params.name))
+const remoteModel = computed<Model | null>(() =>
+  buildRemoteModelFromQuery(route.query as Record<string, any>)
+)
+
+const model = computed<Model | undefined>(() => {
+  if (remoteModel.value) {
+    return remoteModel.value
+  }
+  return store.models.find(m => m.name === route.params.name)
+})
 
 // 组件状态
 const loading = ref(true)

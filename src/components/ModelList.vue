@@ -56,29 +56,34 @@ const filteredModels = computed(() => {
 /**
  * 获取模型类型对应的标签类型
  * @param type 模型类型
- * @returns 标签类型
+ * @returns 标签类型（Element Plus 支持的几种类型）
  */
-function getTagType(type: string): '' | 'success' | 'warning' | 'info' | 'danger' {
+function getTagType(type: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
   switch (type) {
     case 'gltf':
-      return 'success'
     case 'glb':
       return 'success'
     case 'fbx':
       return 'warning'
     case 'obj':
       return 'info'
+    case 'stl':
+      return 'primary'
+    case 'step':
+    case 'iges':
+      return 'danger'
     default:
-      return ''
+      // 其余未知类型统一用 info 显示，避免传入非法值
+      return 'info'
   }
 }
 
 /**
  * 获取分类对应的标签类型
  * @param category 分类
- * @returns 标签类型
+ * @returns 标签类型（Element Plus 支持的几种类型）
  */
-function getCategoryTagType(category: string): '' | 'success' | 'warning' | 'info' | 'danger' {
+function getCategoryTagType(category: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
   switch (category) {
     case 'helmet':
       return 'danger'
@@ -86,8 +91,11 @@ function getCategoryTagType(category: string): '' | 'success' | 'warning' | 'inf
       return 'warning'
     case 'furniture':
       return 'info'
+    case 'data':
+      return 'primary'
     default:
-      return ''
+      // 其他分类统一用 info 展示，避免非法值
+      return 'info'
   }
 }
 

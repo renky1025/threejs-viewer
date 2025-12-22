@@ -1,5 +1,5 @@
 <template>
-  <div class="model-viewer">
+  <div class="model-viewer" @click="onViewerClick">
     <div ref="container" class="viewer-container"></div>
     
     <!-- 顶部工具栏 -->
@@ -10,6 +10,36 @@
       @set-mode="setTransformMode"
       @reset="reset"
       @toggle-rotate="toggleRotate"
+      @toggle-clipping="toggleClippingPanel"
+      @toggle-explode="toggleExplodePanel"
+      @toggle-measure="toggleMeasurePanel"
+      @toggle-scene-graph="toggleSceneGraphPanel"
+    />
+
+    <ClippingPanel
+      v-if="!loading && showClippingPanel"
+      @change="handleClippingChange"
+      @reset="handleClippingReset"
+    />
+
+    <ExplodedPanel
+      v-if="!loading && showExplodePanel"
+      @change="handleExplodeChange"
+      @reset="handleExplodeReset"
+    />
+
+    <MeasurementPanel
+      v-if="!loading && showMeasurePanel"
+      :result="measureResult"
+      @clear="handleMeasureClear"
+    />
+
+    <SceneGraphPanel
+      v-if="!loading && showSceneGraphPanel"
+      :nodes="sceneNodes"
+      @toggle-visible="handleNodeVisible"
+      @change-opacity="handleNodeOpacity"
+      @toggle-lock="handleNodeLock"
     />
   </div>
 </template>
@@ -17,8 +47,12 @@
 <script setup lang="ts">
 import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
 import { loadModel } from '../../utils/threeLoader'
-import type { Model, GroundType, ThreeInstance, TransformMode } from '../../core/types'
+import type { Model, GroundType, ThreeInstance, TransformMode, ClippingAxis, SceneNode, MeasureResult } from '../../core/types'
 import ViewerToolbar from './ViewerToolbar.vue'
+import ClippingPanel from './ClippingPanel.vue'
+import ExplodedPanel from './ExplodedPanel.vue'
+import SceneGraphPanel from './SceneGraphPanel.vue'
+import MeasurementPanel from './MeasurementPanel.vue'
 
 // Props
 const props = defineProps<{ 
@@ -42,6 +76,12 @@ const scale = ref(1)
 // 变换模式
 const transformMode = ref<TransformMode>('translate')
 const isRotating = ref(true)
+const showClippingPanel = ref(false)
+const showExplodePanel = ref(false)
+const showSceneGraphPanel = ref(false)
+const sceneNodes = ref<SceneNode[]>([])
+const showMeasurePanel = ref(false)
+const measureResult = ref<MeasureResult | null>(null)
 
 /**
  * 设置变换模式
@@ -86,6 +126,12 @@ async function init() {
     // 设置初始变换模式
     if (threeInstance) {
       threeInstance.setTransformMode?.(transformMode.value)
+      if (threeInstance.getSceneGraph) {
+        sceneNodes.value = threeInstance.getSceneGraph() || []
+      }
+      if (threeInstance.getMeasureResult) {
+        measureResult.value = threeInstance.getMeasureResult()
+      }
     }
   } catch (e) {
     console.error('模型加载失败:', e)
@@ -138,6 +184,90 @@ function toggleRotate() {
     threeInstance.startAutoRotate()
     isRotating.value = true
   }
+}
+
+function toggleClippingPanel() {
+  showClippingPanel.value = !showClippingPanel.value
+}
+
+function handleClippingChange(axis: ClippingAxis, enabled: boolean, value: number) {
+  if (!threeInstance) return
+  if (enabled) {
+    threeInstance.toggleClippingAxis?.(axis, true)
+    threeInstance.setClippingPlane?.(axis, value)
+  } else {
+    threeInstance.toggleClippingAxis?.(axis, false)
+  }
+}
+
+function handleClippingReset() {
+  if (!threeInstance) return
+  threeInstance.resetClipping?.()
+}
+
+function toggleExplodePanel() {
+  showExplodePanel.value = !showExplodePanel.value
+}
+
+function handleExplodeChange(factor: number) {
+  if (!threeInstance) return
+  threeInstance.setExplodeFactor?.(factor)
+}
+
+function handleExplodeReset() {
+  if (!threeInstance) return
+  threeInstance.resetExplode?.()
+}
+
+function refreshMeasureResult() {
+  if (!threeInstance || !threeInstance.getMeasureResult) {
+    measureResult.value = null
+    return
+  }
+  measureResult.value = threeInstance.getMeasureResult()
+}
+
+function toggleMeasurePanel() {
+  showMeasurePanel.value = !showMeasurePanel.value
+  if (showMeasurePanel.value) {
+    threeInstance?.enableMeasure?.()
+    refreshMeasureResult()
+  } else {
+    threeInstance?.disableMeasure?.()
+  }
+}
+
+function handleMeasureClear() {
+  if (!threeInstance) return
+  threeInstance.clearMeasure?.()
+  refreshMeasureResult()
+}
+
+function onViewerClick() {
+  if (!showMeasurePanel.value) return
+  refreshMeasureResult()
+}
+
+function toggleSceneGraphPanel() {
+  showSceneGraphPanel.value = !showSceneGraphPanel.value
+  if (showSceneGraphPanel.value && threeInstance?.getSceneGraph) {
+    sceneNodes.value = threeInstance.getSceneGraph() || []
+  }
+}
+
+function handleNodeVisible(id: string, visible: boolean) {
+  if (!threeInstance) return
+  threeInstance.applyNodeVisibility?.(id, visible)
+}
+
+function handleNodeOpacity(id: string, opacity: number) {
+  if (!threeInstance) return
+  threeInstance.applyNodeOpacity?.(id, opacity)
+}
+
+function handleNodeLock(id: string, locked: boolean) {
+  if (!threeInstance) return
+  threeInstance.applyNodeLock?.(id, locked)
 }
 
 // 暴露组件方法

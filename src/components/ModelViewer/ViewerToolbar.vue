@@ -36,6 +36,26 @@
           <span v-else>⏸️</span>
         </el-button>
       </el-tooltip>
+      <el-tooltip content="剖切面" placement="bottom">
+        <el-button @click="$emit('toggleClipping')">
+          <span>✂️</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="爆炸视图" placement="bottom">
+        <el-button @click="$emit('toggleExplode')">
+          <span>💥</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="测量" placement="bottom">
+        <el-button @click="$emit('toggleMeasure')">
+          <span>📏</span>
+        </el-button>
+      </el-tooltip>
+      <el-tooltip content="层级管理" placement="bottom">
+        <el-button @click="$emit('toggleSceneGraph')">
+          <span>☰</span>
+        </el-button>
+      </el-tooltip>
     </el-button-group>
     
     <!-- 使用提示 -->
@@ -60,6 +80,10 @@ defineEmits<{
   (e: 'setMode', mode: TransformMode): void
   (e: 'reset'): void
   (e: 'toggleRotate'): void
+  (e: 'toggleClipping'): void
+  (e: 'toggleExplode'): void
+  (e: 'toggleMeasure'): void
+  (e: 'toggleSceneGraph'): void
 }>()
 </script>
 

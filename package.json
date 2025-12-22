@@ -11,7 +11,10 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "element-plus": "^2.10.4",
-    "vue": "^3.5.17"
+    "vue": "^3.5.17",
+    "jszip": "^3.10.1",
+    "occt-import-js": "^0.0.23",
+    "three-mesh-bvh": "^0.9.4"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

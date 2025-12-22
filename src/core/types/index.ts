@@ -9,7 +9,7 @@ import type { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 /**
  * 模型文件类型
  */
-export type ModelType = 'gltf' | 'glb' | 'obj' | 'fbx' | 'json' | 'stl'
+export type ModelType = 'gltf' | 'glb' | 'obj' | 'fbx' | 'json' | 'stl' | 'step' | 'iges'
 
 /**
  * 地面类型
@@ -20,6 +20,8 @@ export type GroundType = 'material' | 'floor' | 'grass'
  * 变换模式类型
  */
 export type TransformMode = 'translate' | 'rotate' | 'scale'
+
+export type ClippingAxis = 'x' | 'y' | 'z'
 
 /**
  * 颜色映射类型
@@ -37,6 +39,8 @@ export interface Model {
   file: string
   category: string
   thumbnail?: string
+  source?: 'local' | 'remote' | 'cache'
+  zipEntry?: string
 }
 
 /**
@@ -172,6 +176,21 @@ export interface ThreeInstance {
   startAutoRotate: () => void
   /** 停止自动旋转 */
   stopAutoRotate: () => void
+  setClippingPlane?: (axis: ClippingAxis, t: number) => void
+  toggleClippingAxis?: (axis: ClippingAxis, enabled: boolean) => void
+  resetClipping?: () => void
+  setExplodeFactor?: (factor: number) => void
+  resetExplode?: () => void
+  getSceneGraph?: () => SceneNode[]
+  applyNodeVisibility?: (id: string, visible: boolean) => void
+  applyNodeOpacity?: (id: string, opacity: number) => void
+  applyNodeLock?: (id: string, locked: boolean) => void
+  enableMeasure?: () => void
+  disableMeasure?: () => void
+  clearMeasure?: () => void
+  getMeasureResult?: () => MeasureResult
+  setMaterialProperties?: (id: string, props: MaterialEditOptions) => void
+  getMaterialProperties?: (id: string) => MaterialProperties | null
 }
 
 // ==================== 压力数据相关 ====================
@@ -223,3 +242,28 @@ export type Vector3Tuple = [number, number, number]
  * 欧拉角元组
  */
 export type EulerTuple = [number, number, number]
+
+export interface SceneNode {
+  id: string
+  name: string
+  type: string
+  visible: boolean
+  opacity: number | null
+  locked: boolean
+  children: SceneNode[]
+}
+
+export interface MeasureResult {
+  points: Vector3Tuple[]
+  distance: number | null
+}
+
+export interface MaterialEditOptions {
+  metalness?: number
+  roughness?: number
+}
+
+export interface MaterialProperties {
+  metalness: number | null
+  roughness: number | null
+}

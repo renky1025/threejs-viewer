@@ -28,7 +28,7 @@
       <div class="main-content">
         <h2 class="section-title">模型库</h2>
         <p class="section-description">
-          选择一个3D模型进行查看。支持的格式：OBJ, FBX, GLTF, GLB
+          选择一个3D模型进行查看。支持的格式：OBJ, FBX, GLTF, GLB, STL, STEP, IGES
         </p>
         
         <ModelList 

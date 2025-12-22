@@ -8,6 +8,8 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/addons/loaders/MTLLoader.js'
 import { STLLoader } from 'three/addons/loaders/STLLoader.js'
 import type { Model, ModelLoadCallbacks, ModelLoadResult } from '../types'
+import { normalizeMesh } from '../pipeline/MeshPipeline'
+import { StepIgesLoader } from './StepIgesLoader'
 
 /**
  * 模型加载器类
@@ -18,6 +20,7 @@ export class ModelLoader {
   private objLoader: OBJLoader
   private mtlLoader: MTLLoader
   private stlLoader: STLLoader
+  private stepIgesLoader: StepIgesLoader
 
   constructor() {
     this.gltfLoader = new GLTFLoader()
@@ -25,6 +28,7 @@ export class ModelLoader {
     this.objLoader = new OBJLoader()
     this.mtlLoader = new MTLLoader()
     this.stlLoader = new STLLoader()
+    this.stepIgesLoader = new StepIgesLoader()
   }
 
   /**
@@ -49,6 +53,10 @@ export class ModelLoader {
           break
         case 'stl':
           result = await this.loadSTL(model.file, callbacks)
+          break
+        case 'step':
+        case 'iges':
+          result = await this.loadStepIges(model.file, model.type, callbacks)
           break
         case 'json':
           throw new Error('JSON文件类型应使用专门的压力数据查看器')
@@ -84,6 +92,8 @@ export class ModelLoader {
       }
     }
 
+    normalizeMesh(gltf.scene)
+
     return { object: gltf.scene, mixer }
   }
 
@@ -107,6 +117,8 @@ export class ModelLoader {
         action.play()
       }
     }
+
+    normalizeMesh(object)
 
     return { object, mixer }
   }
@@ -182,6 +194,8 @@ export class ModelLoader {
       throw new Error('材质应用失败')
     }
 
+    normalizeMesh(object)
+
     return object
   }
 
@@ -189,12 +203,16 @@ export class ModelLoader {
    * 仅加载 OBJ 模型
    */
   private async loadOBJOnly(file: string, callbacks: ModelLoadCallbacks): Promise<THREE.Object3D> {
-    return await this.objLoader.loadAsync(file, (xhr) => {
+    const object = await this.objLoader.loadAsync(file, (xhr) => {
       if (xhr.lengthComputable) {
         const progress = Math.floor((xhr.loaded / xhr.total) * 70) + 10
         callbacks.loading(progress)
       }
     })
+
+    normalizeMesh(object)
+
+    return object
   }
 
   /**
@@ -226,7 +244,20 @@ export class ModelLoader {
     mesh.castShadow = true
     mesh.receiveShadow = true
 
+    normalizeMesh(mesh)
+
     return { object: mesh, mixer: null }
+  }
+
+  /**
+   * 加载 STEP/IGES 模型
+   */
+  private async loadStepIges(file: string, type: Model['type'], callbacks: ModelLoadCallbacks): Promise<ModelLoadResult> {
+    const object = await this.stepIgesLoader.load(file, type, callbacks)
+
+    normalizeMesh(object)
+
+    return { object, mixer: null }
   }
 
   /**

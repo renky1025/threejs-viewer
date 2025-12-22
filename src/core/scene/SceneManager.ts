@@ -3,6 +3,9 @@
  */
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import type { SceneContext, SceneOptions, CameraOptions } from '../types'
 
 /**
@@ -36,6 +39,9 @@ export class SceneManager {
   private container: HTMLDivElement
   private animationId: number | null = null
   private resizeHandler: (() => void) | null = null
+  private composer: EffectComposer | null = null
+  private renderPass: RenderPass | null = null
+  private bloomPass: UnrealBloomPass | null = null
 
   constructor(
     container: HTMLDivElement,
@@ -81,6 +87,9 @@ export class SceneManager {
 
     // 设置窗口大小变化监听
     this.setupResizeHandler()
+
+    // 创建后处理管线
+    this.setupPostProcessing()
   }
 
   /**
@@ -124,8 +133,25 @@ export class SceneManager {
       this.camera.aspect = this.container.clientWidth / this.container.clientHeight
       this.camera.updateProjectionMatrix()
       this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
+      if (this.composer) {
+        this.composer.setSize(this.container.clientWidth, this.container.clientHeight)
+      }
     }
     window.addEventListener('resize', this.resizeHandler)
+  }
+
+  /**
+   * 初始化后处理管线（EffectComposer）
+   */
+  private setupPostProcessing(): void {
+    this.composer = new EffectComposer(this.renderer)
+    this.renderPass = new RenderPass(this.scene, this.camera)
+    this.composer.addPass(this.renderPass)
+
+    const size = new THREE.Vector2(this.container.clientWidth, this.container.clientHeight)
+    this.bloomPass = new UnrealBloomPass(size, 0.0, 0.4, 0.85)
+    this.bloomPass.enabled = false
+    this.composer.addPass(this.bloomPass)
   }
 
   /**
@@ -170,11 +196,33 @@ export class SceneManager {
   }
 
   /**
+   * 启用或禁用 Bloom 效果
+   */
+  enableBloom(enabled: boolean): void {
+    if (this.bloomPass) {
+      this.bloomPass.enabled = enabled
+    }
+  }
+
+  /**
+   * 设置 Bloom 强度
+   */
+  setBloomStrength(value: number): void {
+    if (this.bloomPass) {
+      this.bloomPass.strength = value
+    }
+  }
+
+  /**
    * 渲染一帧
    */
   render(): void {
     this.controls.update()
-    this.renderer.render(this.scene, this.camera)
+    if (this.composer) {
+      this.composer.render()
+    } else {
+      this.renderer.render(this.scene, this.camera)
+    }
   }
 
   /**
@@ -253,5 +301,10 @@ export class SceneManager {
     // 清理控制器和渲染器
     this.controls.dispose()
     this.renderer.dispose()
+
+    if (this.composer) {
+      this.composer.dispose()
+      this.composer = null
+    }
   }
 }

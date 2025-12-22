@@ -22,11 +22,11 @@ export const useModelStore = defineStore('model', {
         thumbnail: '/assets/thumbnails/webgl_loader_fbx.jpg'
       },
       { 
-        name: 'male02', 
+        name: '9836-koenigsegg-agera', 
         type: 'obj', 
-        file: '/models/male02.obj', 
+        file: '/models/9836-koenigsegg-agera.obj', 
         category: 'character',
-        thumbnail: '/assets/thumbnails/webgl_loader_obj.jpg'
+        thumbnail: '/assets/thumbnails/9836-koenigsegg-agera.jpg'
       },
       { 
         name: 'SheenChair', 
@@ -48,6 +48,12 @@ export const useModelStore = defineStore('model', {
         file: '/models/colored.stl', 
         category: 'data',
         thumbnail: '/assets/thumbnails/webgl_loader_stl.jpg'
+      },{
+        name: 'Rescue Robot 2 HKAMEL',
+        type: 'step',
+        file: '/models/Rescue Robot 2 HKAMEL.STEP',
+        category: 'data',
+        thumbnail: '/assets/thumbnails/hatchet.png'
       }
     ] as Model[]
   }),
