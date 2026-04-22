@@ -6,12 +6,27 @@ interface OcctModule {
   ReadIgesFile: (content: Uint8Array, params: any) => any
 }
 
+interface OcctInitOptions {
+  locateFile?: (path: string, scriptDirectory: string) => string
+}
+
 let occtPromise: Promise<OcctModule> | null = null
+
+function getOcctWasmPath(): string {
+  const baseUrl = import.meta.env.BASE_URL || '/'
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  return `${normalizedBase}model/occt-import-js.wasm`
+}
 
 async function getOcctModule(): Promise<OcctModule> {
   if (!occtPromise) {
-    const occtimportjs = (await import('occt-import-js')).default as () => Promise<OcctModule>
-    occtPromise = occtimportjs()
+    const occtimportjs = (await import('occt-import-js')).default as (
+      options?: OcctInitOptions
+    ) => Promise<OcctModule>
+    occtPromise = occtimportjs({
+      // 强制 wasm 从 public 目录加载，避免默认路径返回 HTML 导致 MIME 错误
+      locateFile: (path) => (path === 'occt-import-js.wasm' ? getOcctWasmPath() : path)
+    })
   }
   return occtPromise
 }

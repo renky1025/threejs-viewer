@@ -1,0 +1,159 @@
+<template>
+  <div class="app-toast-wrapper">
+    <TransitionGroup name="toast-fade" tag="div" class="app-toast-list">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        class="app-toast"
+        :class="`app-toast--${toast.type}`"
+        role="status"
+      >
+        <div class="toast-icon">
+          <el-icon v-if="toast.type === 'success'"><CircleCheck /></el-icon>
+          <el-icon v-else-if="toast.type === 'error'"><CircleCloseFilled /></el-icon>
+          <el-icon v-else-if="toast.type === 'warning'"><WarningFilled /></el-icon>
+          <el-icon v-else><InfoFilled /></el-icon>
+        </div>
+        <div class="toast-message">{{ toast.message }}</div>
+        <button class="toast-close" type="button" @click="removeToast(toast.id)">
+          ×
+        </button>
+      </div>
+    </TransitionGroup>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { CircleCheck, CircleCloseFilled, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
+import { useToast } from '@/composables/useToast'
+
+const { toasts, removeToast } = useToast()
+</script>
+
+<style scoped>
+.app-toast-wrapper {
+  position: fixed;
+  top: 14px;
+  left: 0;
+  right: 0;
+  z-index: 2200;
+  pointer-events: none;
+}
+
+.app-toast-list {
+  width: min(460px, calc(100% - 16px));
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.app-toast {
+  pointer-events: auto;
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  color: #ecf6ed;
+  box-shadow: 0 16px 30px rgba(7, 25, 12, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-toast--success {
+  background: linear-gradient(90deg, #1f6d2f 0%, #1b2f18 100%);
+}
+
+.app-toast--error {
+  background: linear-gradient(90deg, #7d2525 0%, #3a1212 100%);
+}
+
+.app-toast--warning {
+  background: linear-gradient(90deg, #855b1c 0%, #352510 100%);
+}
+
+.app-toast--info {
+  background: linear-gradient(90deg, #24547f 0%, #12293e 100%);
+}
+
+.toast-icon {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #5ce27d;
+}
+
+.app-toast--error .toast-icon {
+  color: #ff8585;
+}
+
+.app-toast--warning .toast-icon {
+  color: #ffd877;
+}
+
+.app-toast--info .toast-icon {
+  color: #8cc7ff;
+}
+
+.toast-message {
+  margin-left: 8px;
+  font-size: 13px;
+  line-height: 1.3;
+  letter-spacing: 0.2px;
+  flex: 1;
+}
+
+.toast-close {
+  margin-left: 6px;
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.toast-close:hover {
+  color: #ffffff;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.25s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+}
+
+@media (max-width: 768px) {
+  .app-toast {
+    min-height: 38px;
+    border-radius: 10px;
+    padding: 0 8px;
+  }
+
+  .toast-icon {
+    width: 16px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 16px;
+  }
+
+  .toast-message {
+    margin-left: 6px;
+    font-size: 12px;
+  }
+
+  .toast-close {
+    font-size: 13px;
+  }
+}
+</style>

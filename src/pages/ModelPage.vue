@@ -5,24 +5,15 @@
       <el-button type="primary" @click="goBack" circle><el-icon><ArrowLeftBold /></el-icon></el-button>
     </div>
     
-    <!-- 地面材质选择 (仅在非压力数据模型时显示) -->
-    <div class="ground-selector" v-if="model && model.type !== 'json'">
-      <el-select v-model="ground" placeholder="地面材质" size="small">
-        <el-option label="基础材质" value="material" />
-        <el-option label="木地板" value="floor" />
-        <el-option label="草地" value="grass" />
-      </el-select>
-    </div>
-    
     <!-- 加载进度条 -->
     <LoadingBar v-if="loading" :progress="progress" />
     
     <!-- 错误提示 -->
     <el-alert
       v-if="error"
-      title="模型加载失败"
+      :title="errorTitle"
       type="error"
-      description="无法加载请求的模型，请检查模型文件是否存在或格式是否正确。"
+      :description="errorDescription"
       show-icon
       :closable="false"
       class="error-alert"
@@ -53,13 +44,13 @@
     
     <!-- 模型名称显示 -->
     <div class="model-name" v-if="model && !loading">
-      {{ model.name }} ({{ model.type.toUpperCase() }})
+      {{ modelDisplayName }} ({{ model.type.toUpperCase() }})
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useModelStore } from '../store'
 import ModelViewer from '@/components/ModelViewer/index.vue'
@@ -68,10 +59,12 @@ import LoadingBar from '@/components/LoadingBar.vue'
 import type { GroundType, Model } from '../utils/types'
 import { buildRemoteModelFromQuery } from '../utils/remoteModel'
 import { ArrowLeftBold } from '@element-plus/icons-vue'
+import { getErrorMessage, useToast } from '@/composables/useToast'
 
 // 路由
 const route = useRoute()
 const router = useRouter()
+const { showToast } = useToast()
 
 // 模型存储
 const store = useModelStore()
@@ -86,13 +79,26 @@ const model = computed<Model | undefined>(() => {
   }
   return store.models.find(m => m.name === route.params.name)
 })
+const modelDisplayName = computed(() => {
+  const name = model.value?.name || ''
+  return name.split('__uploaded_')[0] || name
+})
 
 // 组件状态
 const loading = ref(true)
 const progress = ref(0)
 const error = ref(false)
+const errorTitle = ref('模型加载失败')
+const errorDescription = ref('无法加载请求的模型，请检查模型文件是否存在或格式是否正确。')
 const ground = ref<GroundType>('material') // 默认使用网格线地面
 const viewerRef = ref()
+
+function setPageError(title: string, description: string) {
+  loading.value = false
+  error.value = true
+  errorTitle.value = title
+  errorDescription.value = description
+}
 
 /**
  * 加载进度处理函数
@@ -109,14 +115,22 @@ function onLoading(val: number) {
 function onLoaded() { 
   loading.value = false 
   error.value = false
+  errorTitle.value = '模型加载失败'
+  errorDescription.value = '无法加载请求的模型，请检查模型文件是否存在或格式是否正确。'
+  if (model.value) {
+    showToast({ type: 'success', message: `模型加载完成：${modelDisplayName.value}` })
+  }
 }
 
 /**
  * 加载错误处理函数
  */
-function onError() { 
-  loading.value = false 
-  error.value = true
+function onError(reason?: unknown) { 
+  setPageError('模型加载失败', '无法加载请求的模型，请检查模型文件是否存在或格式是否正确。')
+  showToast({
+    type: 'error',
+    message: getErrorMessage(reason, '模型加载失败，请检查文件是否可用')
+  })
 }
 
 /**
@@ -125,6 +139,27 @@ function onError() {
 function goBack() { 
   router.push('/') 
 }
+
+watch(
+  () => model.value,
+  (currentModel) => {
+    if (currentModel || remoteModel.value) {
+      return
+    }
+
+    const routeName = typeof route.params.name === 'string' ? route.params.name : ''
+    const isUploadedModel = routeName.includes('__uploaded_')
+    if (isUploadedModel) {
+      setPageError('上传模型已失效', '本地上传文件在页面刷新后无法直接恢复，请返回首页重新上传。')
+      showToast({ type: 'warning', message: '上传模型在刷新后失效，请重新上传文件' })
+      return
+    }
+
+    setPageError('未找到模型', '请求的模型不存在，可能已被移除，请返回首页重新选择。')
+    showToast({ type: 'error', message: '未找到模型，请返回首页重新选择' })
+  },
+  { immediate: true }
+)
 
 </script>
 
@@ -141,13 +176,6 @@ function goBack() {
   position: absolute;
   top: 20px;
   left: 20px;
-  z-index: 100;
-}
-
-.ground-selector {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   z-index: 100;
 }
 
@@ -176,17 +204,12 @@ function goBack() {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .back-button,
-  .ground-selector {
+  .back-button {
     top: 10px;
   }
   
   .back-button {
     left: 10px;
-  }
-  
-  .ground-selector {
-    right: 10px;
   }
   
   .model-name {

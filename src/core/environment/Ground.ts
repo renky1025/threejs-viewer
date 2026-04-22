@@ -52,6 +52,10 @@ export function createGround(
     case 'grass':
       createTexturedGround(groundGroup, opts, 'grass')
       break
+    case 'material':
+      // 材质球场景风格 - 深色地面 + 网格
+      createMaterialStyleGround(groundGroup, opts)
+      break
     default:
       // 默认使用简洁网格地面（如图所示的样式）
       createMinimalGridGround(groundGroup, opts)
@@ -108,8 +112,34 @@ function createMinimalGridGround(group: THREE.Group, opts: Required<GroundOption
 }
 
 /**
- * 创建带纹理的地面
+ * 创建材质球风格的地面（明亮地面 + 灰色网格）
  */
+function createMaterialStyleGround(group: THREE.Group, opts: Required<GroundOptions>): void {
+  // 浅灰白色地面 - 与明亮场景一致
+  const geometry = new THREE.PlaneGeometry(opts.size, opts.size)
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xe8eaed,
+    roughness: 0.9,
+    metalness: 0.1
+  })
+
+  const groundMesh = new THREE.Mesh(geometry, material)
+  groundMesh.rotation.x = -Math.PI / 2
+  groundMesh.receiveShadow = true
+  group.add(groundMesh)
+
+  // 网格辅助线 - 深灰色
+  if (opts.showGrid) {
+    const gridHelper = new THREE.GridHelper(
+      opts.size,
+      opts.divisions,
+      0x8899aa,
+      0xcdd1d6
+    )
+    gridHelper.position.y = 0.01
+    group.add(gridHelper)
+  }
+}
 function createTexturedGround(group: THREE.Group, opts: Required<GroundOptions>, type: 'floor' | 'grass'): void {
   const geometry = new THREE.PlaneGeometry(opts.size, opts.size)
   const material = type === 'floor' 

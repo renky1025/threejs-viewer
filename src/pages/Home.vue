@@ -1,45 +1,66 @@
 <template>
   <el-container class="home-container">
-    <el-header class="app-header">
+    <el-header class="app-header" role="banner">
       <div class="header-content">
         <h1 class="app-title">3D模型查看器</h1>
+        <div class="nav-menu">
+          <el-button type="primary" plain @click="goToMaterialSphere">
+            <el-icon><Brush /></el-icon>
+            材质球展示
+          </el-button>
+        </div>
         <div class="search-filters">
-          <el-input 
-            v-model="search" 
-            placeholder="搜索模型..." 
+          <el-input
+            v-model="search"
+            placeholder="搜索模型..."
             prefix-icon="el-icon-search"
             clearable
           />
-          <el-select 
-            v-model="category" 
-            placeholder="分类" 
+          <el-select
+            v-model="category"
+            placeholder="分类"
             clearable
           >
             <el-option label="全部" value="" />
-            <el-option label="头盔" value="helmet" />
-            <el-option label="人物" value="character" />
-            <el-option label="家具" value="furniture" />
+            <el-option
+              v-for="item in categoryOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
+          <el-upload
+            class="upload-button"
+            :show-file-list="false"
+            :auto-upload="false"
+            :on-change="handleUploadChange"
+            :accept="supportedAccept"
+          >
+            <el-button type="primary" plain>上传3D文件</el-button>
+          </el-upload>
         </div>
       </div>
     </el-header>
     
-    <el-main class="app-main">
+    <el-main class="app-main" role="main">
       <div class="main-content">
-        <h2 class="section-title">模型库</h2>
-        <p class="section-description">
-          选择一个3D模型进行查看。支持的格式：OBJ, FBX, GLTF, GLB, STL, STEP, IGES
-        </p>
+        <section class="model-section" aria-labelledby="models-heading">
+          <h2 id="models-heading" class="section-title">模型库</h2>
+          <p class="section-description">
+            选择一个3D模型进行查看。支持的格式：OBJ, FBX, GLTF, GLB, STL, STEP, IGES
+            （提示：本地上传推荐使用 GLB；GLTF/OBJ 若依赖外部纹理文件可能无法完整显示）
+          </p>
         
-        <ModelList 
-          :search="search" 
-          :category="category" 
-          @select="onSelect" 
-        />
+          <ModelList
+            :search="search"
+            :category="category"
+            @select="onSelect"
+          />
+        </section>
       </div>
     </el-main>
     
-    <el-footer class="app-footer">
+    <el-footer class="app-footer" role="contentinfo">
       <p>3D模型查看器 &copy; {{ currentYear }}</p>
     </el-footer>
   </el-container>
@@ -50,13 +71,21 @@ import { ref, computed } from 'vue'
 import ModelList from '@/components/ModelList.vue'
 import { useRouter } from 'vue-router'
 import type { Model } from '../utils/types'
+import type { UploadFile, UploadFiles } from 'element-plus'
+import { useModelStore } from '@/store'
+import { useToast } from '@/composables/useToast'
+import { Brush } from '@element-plus/icons-vue'
 
 // 路由
 const router = useRouter()
+const store = useModelStore()
+const { showToast } = useToast()
 
 // 搜索和过滤状态
 const search = ref('')
 const category = ref('')
+const supportedAccept = '.glb,.gltf,.fbx,.obj,.stl,.step,.stp,.iges,.igs'
+const categoryOptions = computed(() => store.categories)
 
 // 当前年份
 const currentYear = computed(() => new Date().getFullYear())
@@ -66,11 +95,31 @@ const currentYear = computed(() => new Date().getFullYear())
  * @param model 选中的模型
  */
 function onSelect(model: Model) {
-  console.log(model.name)
-  router.push({ 
-    name: 'ModelPage', 
-    params: { name: model.name } 
+  router.push({
+    name: 'ModelPage',
+    params: { name: model.name }
   })
+}
+
+function goToMaterialSphere() {
+  router.push({ name: 'MaterialSphere' })
+}
+
+function handleUploadChange(uploadFile: UploadFile, _: UploadFiles) {
+  const raw = uploadFile.raw
+  if (!raw) {
+    showToast({ type: 'error', message: '文件读取失败，请重试' })
+    return
+  }
+
+  const model = store.registerUploadedFile(raw)
+  if (!model) {
+    showToast({ type: 'warning', message: '不支持的文件格式，请上传 glb/gltf/fbx/obj/stl/step/iges' })
+    return
+  }
+
+  showToast({ type: 'success', message: `文件已导入：${raw.name}` })
+  onSelect(model)
 }
 </script>
 
@@ -94,6 +143,12 @@ function onSelect(model: Model) {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  gap: 15px;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 10px;
 }
 
 .app-title {
@@ -114,6 +169,10 @@ function onSelect(model: Model) {
 
 .search-filters .el-select {
   width: 120px;
+}
+
+.upload-button {
+  display: inline-flex;
 }
 
 .app-main {
@@ -159,6 +218,15 @@ function onSelect(model: Model) {
   
   .search-filters .el-input,
   .search-filters .el-select {
+    width: 100%;
+  }
+
+  .upload-button {
+    width: 100%;
+  }
+
+  .upload-button :deep(.el-upload),
+  .upload-button :deep(.el-button) {
     width: 100%;
   }
 }

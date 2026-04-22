@@ -10,12 +10,16 @@ import {
   TransformControllerManager,
   CubeController,
   createSimpleCubeControl,
-  setupLighting,
   createGround,
+  disposeGround,
   updateObjectTransform,
   SceneGraphBuilder,
   EnvironmentManager,
-  MaterialEditorController
+  MaterialEditorController,
+  createSceneConstraint,
+  addAxesHelper,
+  removeAxesHelper,
+  updateAxesHelperRotation
 } from '../core'
 import { prepareRemoteModel } from '../core/cache/RemoteModelLoader'
 import { ClippingController } from '../core/controllers/ClippingController'
@@ -31,6 +35,8 @@ import type {
   MaterialEditOptions,
   MaterialProperties
 } from '../core/types'
+
+const DEFAULT_GROUND_HALF_SIZE = 50
 
 /**
  * 加载3D模型
@@ -63,6 +69,16 @@ export async function loadModel(
   let envManager: EnvironmentManager | null = null
   let materialEditor: MaterialEditorController | null = null
   const uuidMap = new Map<string, THREE.Object3D>()
+  let isPageVisible = !document.hidden
+  let groundGroup: THREE.Group | null = null
+  let ambientLight: THREE.AmbientLight | null = null
+  let mainLight: THREE.DirectionalLight | null = null
+  let fillLight: THREE.DirectionalLight | null = null
+  const applySceneConstraint = createSceneConstraint({
+    groundY: 0,
+    halfSize: DEFAULT_GROUND_HALF_SIZE,
+    padding: 0.5
+  })
 
   // ==================== 自动旋转控制 ====================
   function startAutoRotate() {
@@ -163,13 +179,40 @@ export async function loadModel(
   const sceneManager = new SceneManager(container)
   const { scene, camera, renderer, controls } = sceneManager.getContext()
 
-  // 添加地面
-  createGround(scene, ground)
+  // 设置自然的背景色 - 柔和的蓝灰色
+  scene.background = new THREE.Color(0xf0f4f8)
+  scene.fog = new THREE.Fog(0xf0f4f8, 20, 100)
 
-  // 设置灯光
-  setupLighting(scene)
+  // 添加地面 - 使用与材质球相同的样式
+  groundGroup = createGround(scene, 'material')
 
-  // 环境
+  // 设置与明亮场景匹配的灯光
+  // 环境光 - 更亮
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
+  scene.add(ambientLight)
+
+  // 主光源 - 更柔和
+  mainLight = new THREE.DirectionalLight(0xfff5e6, 1.0)
+  mainLight.position.set(8, 15, 10)
+  mainLight.castShadow = true
+  mainLight.shadow.mapSize.width = 2048
+  mainLight.shadow.mapSize.height = 2048
+  mainLight.shadow.camera.near = 0.5
+  mainLight.shadow.camera.far = 50
+  mainLight.shadow.camera.left = -10
+  mainLight.shadow.camera.right = 10
+  mainLight.shadow.camera.top = 10
+  mainLight.shadow.camera.bottom = -10
+  mainLight.shadow.radius = 2
+  mainLight.shadow.bias = -0.0001
+  scene.add(mainLight)
+
+  // 辅助光 - 补光
+  fillLight = new THREE.DirectionalLight(0xe6f0ff, 0.4)
+  fillLight.position.set(-8, 8, -8)
+  scene.add(fillLight)
+
+  // 环境贴图
   envManager = new EnvironmentManager(renderer, scene)
   envManager.setupSkyEnvironment()
 
@@ -198,7 +241,8 @@ export async function loadModel(
     scene,
     camera,
     renderer,
-    controls
+    controls,
+    { constraint: applySceneConstraint }
   )
 
   function createTransformControls(mode: TransformMode = 'translate') {
@@ -267,6 +311,7 @@ export async function loadModel(
   // ==================== 动画循环 ====================
   function animate() {
     animationId = requestAnimationFrame(animate)
+    if (!isPageVisible) return
 
     // 自动旋转模型（仅在没有用户交互时生效）
     const transformControls = transformManager.getControls()
@@ -281,10 +326,17 @@ export async function loadModel(
       mixer.update(delta)
     }
 
+    // 更新三轴辅助器的旋转（跟随相机）
+    updateAxesHelperRotation(camera)
+
     sceneManager.render()
   }
 
   // 立即开始渲染（场景已有天空盒、地面、灯光和 bbox）
+  const visibilityHandler = () => {
+    isPageVisible = !document.hidden
+  }
+  document.addEventListener('visibilitychange', visibilityHandler)
   animate()
 
   // ==================== 加载模型 ====================
@@ -328,6 +380,7 @@ export async function loadModel(
     ModelProcessor.centerModel(group)
     ModelProcessor.autoScale(group)
     ModelProcessor.groundModel(group)
+    applySceneConstraint(group)
 
     // 更新 bbox 到实际模型尺寸
     if (bboxPlaceholder) {
@@ -341,6 +394,9 @@ export async function loadModel(
       explodedController = new ExplodedViewController(group)
       materialEditor = new MaterialEditorController(group)
       rebuildUuidMap()
+
+      // 添加 XYZ 三轴辅助器到屏幕右上角
+      addAxesHelper(container)
     }
 
     callbacks.loading(90)
@@ -374,8 +430,8 @@ export async function loadModel(
       scene.remove(bboxPlaceholder)
       bboxPlaceholder = null
     }
+    dispose()
     console.error('模型加载失败:', error)
-    callbacks.error(error)
     throw error
   }
 
@@ -389,6 +445,7 @@ export async function loadModel(
       group.position.set(0, 0, 0)
       group.rotation.set(0, 0, 0)
       ModelProcessor.groundModel(group)
+      applySceneConstraint(group)
     }
   }
 
@@ -396,6 +453,7 @@ export async function loadModel(
   function updateTransform(position: number[], rotation: number[], scale: number) {
     if (group) {
       updateObjectTransform(group, position, rotation, scale)
+      applySceneConstraint(group)
     }
   }
 
@@ -480,10 +538,36 @@ export async function loadModel(
       materialEditor = null
     }
 
+    // 清理灯光
+    if (ambientLight) {
+      scene.remove(ambientLight)
+      ambientLight.dispose()
+      ambientLight = null
+    }
+    if (mainLight) {
+      scene.remove(mainLight)
+      mainLight.dispose()
+      mainLight = null
+    }
+    if (fillLight) {
+      scene.remove(fillLight)
+      fillLight.dispose()
+      fillLight = null
+    }
+
     // 释放远程模型的 blob URL
     if (remoteBlobUrl) {
       URL.revokeObjectURL(remoteBlobUrl)
       remoteBlobUrl = null
+    }
+
+    // 移除坐标轴辅助器
+    removeAxesHelper(scene)
+
+    // 清理地面
+    if (groundGroup) {
+      disposeGround(groundGroup)
+      groundGroup = null
     }
 
     // 移除 group
@@ -493,6 +577,7 @@ export async function loadModel(
 
     // 清理场景管理器
     sceneManager.dispose()
+    document.removeEventListener('visibilitychange', visibilityHandler)
 
     // 断开引用
     group = null

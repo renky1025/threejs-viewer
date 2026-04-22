@@ -11,10 +11,13 @@
           :body-style="{ padding: '0px' }"
         >
           <div class="model-thumbnail">
-            <img :src="model.thumbnail || '/assets/placeholder.svg'" alt="模型缩略图">
+            <div
+              class="model-thumbnail-image"
+              :style="{ backgroundImage: `url(${model.thumbnail || '/assets/placeholder.svg'})` }"
+            ></div>
           </div>
           <div class="model-info">
-            <h3>{{ model.name }}</h3>
+            <h3>{{ formatModelName(model.name) }}</h3>
             <el-tag size="small" :type="getTagType(model.type)">{{ model.type }}</el-tag>
             <el-tag size="small" :type="getCategoryTagType(model.category)" class="category-tag">
               {{ getCategoryName(model.category) }}
@@ -30,6 +33,21 @@
 import { computed } from 'vue'
 import { useModelStore } from '../store'
 import type { Model } from '../utils/types'
+
+const categoryLabelMap: Record<string, string> = {
+  helmet: '头盔',
+  character: '人物',
+  furniture: '家具',
+  car: '汽车',
+  data: '数据',
+  '压力数据': '压力数据',
+  '零件': '零件',
+  '机器': '机器',
+  '灯': '灯',
+  home: '家居',
+  remote: '远程模型',
+  uploaded: '本地上传'
+}
 
 // 定义组件属性
 const props = defineProps<{ 
@@ -93,6 +111,12 @@ function getCategoryTagType(category: string): 'primary' | 'success' | 'warning'
       return 'info'
     case 'data':
       return 'primary'
+    case 'uploaded':
+      return 'success'
+    case 'remote':
+      return 'warning'
+    case 'home':
+      return 'primary'
     default:
       // 其他分类统一用 info 展示，避免非法值
       return 'info'
@@ -105,16 +129,12 @@ function getCategoryTagType(category: string): 'primary' | 'success' | 'warning'
  * @returns 分类名称
  */
 function getCategoryName(category: string): string {
-  switch (category) {
-    case 'helmet':
-      return '头盔'
-    case 'character':
-      return '人物'
-    case 'furniture':
-      return '家具'
-    default:
-      return category
-  }
+  return categoryLabelMap[category] || category
+}
+
+function formatModelName(name: string): string {
+  const [displayName] = name.split('__uploaded_')
+  return displayName || name
 }
 </script>
 
@@ -141,14 +161,16 @@ function getCategoryName(category: string): string {
   background-color: #f5f7fa;
 }
 
-.model-thumbnail img {
+.model-thumbnail-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
   transition: transform 0.3s;
 }
 
-.model-card:hover .model-thumbnail img {
+.model-card:hover .model-thumbnail-image {
   transform: scale(1.05);
 }
 

@@ -19,8 +19,8 @@ export interface SkyboxOptions {
  * 默认天空盒配置
  */
 const DEFAULT_SKYBOX_OPTIONS: Required<SkyboxOptions> = {
-  topColor: 0x87ceeb,    // 天蓝色
-  bottomColor: 0xffffff, // 白色
+  topColor: 0xc9d6e3,    // 柔和的浅蓝灰色
+  bottomColor: 0xffffff, // 纯白色
   radius: 500
 }
 

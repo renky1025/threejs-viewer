@@ -1,11 +1,28 @@
 import { defineStore } from 'pinia'
 import type { Model } from '../utils/types'
+import { buildUploadedModel } from '@/utils/modelSource'
+
+const categoryNameMap: Record<string, string> = {
+  helmet: '头盔',
+  character: '人物',
+  furniture: '家具',
+  car: '汽车',
+  data: '数据',
+  '压力数据': '压力数据',
+  '零件': '零件',
+  '机器': '机器',
+  '灯': '灯',
+  home: '家居',
+  remote: '远程模型',
+  uploaded: '本地上传'
+}
 
 /**
  * 模型存储
  */
 export const useModelStore = defineStore('model', {
   state: () => ({
+    uploadedModelFiles: {} as Record<string, string>,
     models: [
       { 
         name: 'DamagedHelmet', 
@@ -20,13 +37,6 @@ export const useModelStore = defineStore('model', {
         file: '/models/Samba Dancing.fbx', 
         category: 'character',
         thumbnail: '/assets/thumbnails/webgl_loader_fbx.jpg'
-      },
-      { 
-        name: '9836-koenigsegg-agera', 
-        type: 'obj', 
-        file: '/models/9836-koenigsegg-agera.obj', 
-        category: 'character',
-        thumbnail: '/assets/thumbnails/9836-koenigsegg-agera.jpg'
       },
       { 
         name: 'SheenChair', 
@@ -60,6 +70,41 @@ export const useModelStore = defineStore('model', {
         file: '/models/Oillamp.igs',
         category: '灯',
         thumbnail: '/assets/thumbnails/oillamp400x400_full.jpg'
+      },
+      {
+        name: '兵马俑懒人沙发躺平',
+        type: 'obj',
+        file: '/home/兵马俑懒人沙发躺平/model.obj',
+        category: 'home',
+        thumbnail: '/home/兵马俑懒人沙发躺平/image.jpg'
+      },
+      {
+        name: '单人凳子',
+        type: 'obj',
+        file: '/home/单人凳子/model.obj',
+        category: 'home',
+        thumbnail: '/home/单人凳子/image.jpg'
+      },
+      {
+        name: '懒人沙发S-0',
+        type: 'obj',
+        file: '/home/懒人沙发S-0/model.obj',
+        category: 'home',
+        thumbnail: '/home/懒人沙发S-0/image.jpg'
+      },
+      {
+        name: '懒人沙发S-1',
+        type: 'obj',
+        file: '/home/懒人沙发S-1/model.obj',
+        category: 'home',
+        thumbnail: '/home/懒人沙发S-1/image.jpg'
+      },
+      {
+        name: '柜子',
+        type: 'obj',
+        file: '/home/柜子/model.obj',
+        category: 'home',
+        thumbnail: '/home/柜子/image.jpg'
       }
     ] as Model[]
   }),
@@ -79,7 +124,12 @@ export const useModelStore = defineStore('model', {
      * @returns 过滤函数
      */
     getByType: (state) => (type: string) => 
-      state.models.filter(m => m.type === type)
+      state.models.filter(m => m.type === type),
+    categories: (state) =>
+      Array.from(new Set(state.models.map((model) => model.category))).map((category) => ({
+        value: category,
+        label: categoryNameMap[category] || category
+      }))
   },
   
   actions: {
@@ -90,6 +140,24 @@ export const useModelStore = defineStore('model', {
      */
     findByName(name: string): Model | undefined {
       return this.models.find(m => m.name === name)
+    },
+    registerUploadedFile(file: File): Model | null {
+      const model = buildUploadedModel(file)
+      if (!model) return null
+
+      const oldFile = this.uploadedModelFiles[model.name]
+      if (oldFile && oldFile !== model.file) {
+        URL.revokeObjectURL(oldFile)
+      }
+
+      this.uploadedModelFiles[model.name] = model.file
+      this.models.unshift(model)
+      return model
+    },
+    clearUploadedModels(): void {
+      Object.values(this.uploadedModelFiles).forEach((url) => URL.revokeObjectURL(url))
+      this.uploadedModelFiles = {}
+      this.models = this.models.filter((model) => model.source !== 'uploaded')
     }
   }
 })

@@ -20,6 +20,7 @@ export class ModelLoader {
   private objLoader: OBJLoader
   private mtlLoader: MTLLoader
   private stlLoader: STLLoader
+  private textureLoader: THREE.TextureLoader
   private stepIgesLoader: StepIgesLoader
 
   constructor() {
@@ -28,6 +29,7 @@ export class ModelLoader {
     this.objLoader = new OBJLoader()
     this.mtlLoader = new MTLLoader()
     this.stlLoader = new STLLoader()
+    this.textureLoader = new THREE.TextureLoader()
     this.stepIgesLoader = new StepIgesLoader()
   }
 
@@ -128,21 +130,16 @@ export class ModelLoader {
    */
   private async loadOBJ(file: string, callbacks: ModelLoadCallbacks): Promise<ModelLoadResult> {
     const mtlPath = file.replace('.obj', '.mtl')
-    const mtlExists = await this.checkFileExists(mtlPath)
+    const texturePath = file.replace(/\.obj$/i, '.png')
 
     let object: THREE.Object3D
 
-    if (mtlExists) {
-      try {
-        object = await this.loadOBJWithMTL(file, mtlPath, callbacks)
-      } catch (error) {
-        console.warn('MTL加载失败，使用默认材质:', error)
-        object = await this.loadOBJOnly(file, callbacks)
-        this.applyDefaultMaterial(object)
-      }
-    } else {
+    try {
+      object = await this.loadOBJWithMTL(file, mtlPath, callbacks)
+    } catch (error) {
+      console.warn('MTL加载失败或无效，使用默认材质:', error)
       object = await this.loadOBJOnly(file, callbacks)
-      this.applyDefaultMaterial(object)
+      await this.applyDefaultMaterial(object, texturePath)
     }
 
     return { object, mixer: null }
@@ -168,6 +165,11 @@ export class ModelLoader {
       materials.preload()
       setTimeout(resolve, 100)
     })
+
+    const materialsInfo = (materials as any).materialsInfo as Record<string, unknown> | undefined
+    if (!materialsInfo || Object.keys(materialsInfo).length === 0) {
+      throw new Error('MTL内容为空或无效')
+    }
 
     const loader = new OBJLoader()
     loader.setMaterials(materials)
@@ -261,29 +263,37 @@ export class ModelLoader {
   }
 
   /**
-   * 检查文件是否存在
-   */
-  private async checkFileExists(url: string): Promise<boolean> {
-    try {
-      const response = await fetch(url, { method: 'HEAD' })
-      return response.ok
-    } catch {
-      return false
-    }
-  }
-
-  /**
    * 应用默认材质
    */
-  private applyDefaultMaterial(object: THREE.Object3D): void {
+  private async applyDefaultMaterial(object: THREE.Object3D, textureUrl?: string): Promise<void> {
+    let texture: THREE.Texture | null = null
+    if (textureUrl) {
+      try {
+        texture = await this.textureLoader.loadAsync(textureUrl)
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.flipY = true
+      } catch (error) {
+        console.warn('贴图加载失败，回退为纯色材质:', error)
+      }
+    }
+
     object.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh
-        mesh.material = new THREE.MeshStandardMaterial({
-          color: 0xcccccc,
-          roughness: 0.7,
-          metalness: 0.2,
-          side: THREE.DoubleSide
+        if (mesh.geometry && !mesh.geometry.attributes.normal) {
+          mesh.geometry.computeVertexNormals()
+        }
+
+        // OBJ + 单贴图资源更适合非 PBR 材质，避免在部分贴图资源上出现整体发黑
+        mesh.material = new THREE.MeshPhongMaterial({
+          map: texture,
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+          shininess: 30,
+          specular: 0x222222,
+          transparent: Boolean(texture),
+          alphaTest: texture ? 0.01 : 0,
+          opacity: 1
         })
       }
     })

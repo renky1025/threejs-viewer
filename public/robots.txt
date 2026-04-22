@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /*.map$
+Disallow: /*.ts$
+
+# 允许所有主要搜索引擎访问
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# 站点地图
+Sitemap: https://viewer.ftmi.info/sitemap.xml

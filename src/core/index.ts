@@ -18,7 +18,7 @@ export { CubeController, createSimpleCubeControl, VIEW_PRESETS } from './control
 export { MaterialEditorController } from './controllers/MaterialEditorController'
 
 // 辅助器
-export { addAxesHelper, removeAxesHelper } from './helpers/AxesHelper'
+export { addAxesHelper, removeAxesHelper, updateAxesHelperRotation } from './helpers/AxesHelper'
 
 // 环境
 export { LightingManager, setupLighting } from './environment/Lighting'
@@ -26,3 +26,4 @@ export { createGround, disposeGround } from './environment/Ground'
 export { createRealisticSky, createSolidBackground, createCubeMapSky, disposeSkybox } from './environment/Skybox'
 export { SceneGraphBuilder } from './scene/SceneGraphBuilder'
 export { EnvironmentManager } from './environment/EnvironmentManager'
+export { createSceneConstraint } from './constraints/SceneConstraint'

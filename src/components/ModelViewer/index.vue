@@ -67,6 +67,7 @@ const emit = defineEmits(['loading', 'loaded', 'error'])
 const container = ref<HTMLDivElement>()
 const loading = ref(true)
 let threeInstance: ThreeInstance | null = null
+let initToken = 0
 
 // 模型变换状态
 const position = reactive({ x: 0, y: 0, z: 0 })
@@ -98,29 +99,55 @@ function setTransformMode(mode: TransformMode) {
  */
 async function init() {
   if (!container.value || !props.model) return
+  const token = ++initToken
+  loading.value = true
+  emit('loading', 0)
+
+  if (threeInstance) {
+    threeInstance.dispose()
+    threeInstance = null
+  }
   
   try {
     // 重置变换状态
     position.x = position.y = position.z = 0
     rotation.x = rotation.y = rotation.z = 0
     scale.value = 1
+    showClippingPanel.value = false
+    showExplodePanel.value = false
+    showSceneGraphPanel.value = false
+    showMeasurePanel.value = false
+    sceneNodes.value = []
+    measureResult.value = null
     
     // 加载模型
     threeInstance = await loadModel(container.value, props.model, props.ground, {
-      loading: (progress: number) => emit('loading', progress),
+      loading: (progress: number) => {
+        if (token !== initToken) return
+        emit('loading', progress)
+      },
       loaded: () => {
+        if (token !== initToken) return
         loading.value = false
         emit('loaded')
         // 初始化立方体控制器
         setTimeout(() => {
+          if (token !== initToken) return
           threeInstance?.initCubeControl?.()
         }, 100)
       },
       error: (error: unknown) => {
+        if (token !== initToken) return
         loading.value = false
         emit('error', error)
       }
     })
+
+    if (token !== initToken) {
+      threeInstance?.dispose()
+      threeInstance = null
+      return
+    }
     
     // 设置初始变换模式
     if (threeInstance) {
@@ -133,6 +160,7 @@ async function init() {
       }
     }
   } catch (e) {
+    if (token !== initToken) return
     console.error('模型加载失败:', e)
     loading.value = false
     emit('error', e)
@@ -273,7 +301,9 @@ function handleNodeLock(id: string, locked: boolean) {
 defineExpose({ reset, addCubeControl, updateTransform })
 
 // 监听属性变化
-watch(() => [props.model, props.ground], init, { immediate: true })
+watch(() => [props.model, props.ground], () => {
+  init()
+}, { immediate: true })
 
 watch(() => loading.value, (val) => {
   if (!val && threeInstance) {
@@ -282,9 +312,10 @@ watch(() => loading.value, (val) => {
   }
 })
 
-// 生命周期
 onMounted(init)
+
 onBeforeUnmount(() => {
+  initToken += 1
   if (threeInstance) {
     threeInstance.dispose()
     threeInstance = null

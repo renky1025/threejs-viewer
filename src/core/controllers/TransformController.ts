@@ -9,11 +9,16 @@ import type { TransformMode, TransformControllerOptions } from '../types'
 /**
  * 默认配置
  */
-const DEFAULT_OPTIONS: Required<TransformControllerOptions> = {
+type ResolvedTransformControllerOptions =
+  Required<Omit<TransformControllerOptions, 'constraint'>> &
+  Pick<TransformControllerOptions, 'constraint'>
+
+const DEFAULT_OPTIONS: ResolvedTransformControllerOptions = {
   size: 1.0,
   translationSnap: null, // 禁用平移吸附，实现流畅移动
   rotationSnap: null,    // 禁用旋转吸附
-  scaleSnap: null        // 禁用缩放吸附
+  scaleSnap: null,       // 禁用缩放吸附
+  constraint: undefined
 }
 
 /**
@@ -25,7 +30,7 @@ export class TransformControllerManager {
   private camera: THREE.Camera
   private renderer: THREE.WebGLRenderer
   private orbitControls: OrbitControls
-  private options: Required<TransformControllerOptions>
+  private options: ResolvedTransformControllerOptions
   private onChangeCallback: ((info: TransformInfo) => void) | null = null
 
   constructor(
@@ -73,6 +78,9 @@ export class TransformControllerManager {
 
       // 监听变换事件
       controls.addEventListener('objectChange', () => {
+        if (target) {
+          this.options.constraint?.(target)
+        }
         if (target && this.onChangeCallback) {
           this.onChangeCallback({
             position: target.position.toArray() as [number, number, number],

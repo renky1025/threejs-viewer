@@ -39,7 +39,7 @@ export interface Model {
   file: string
   category: string
   thumbnail?: string
-  source?: 'local' | 'remote' | 'cache'
+  source?: 'local' | 'remote' | 'cache' | 'uploaded'
   zipEntry?: string
 }
 
@@ -103,6 +103,7 @@ export interface TransformControllerOptions {
   translationSnap?: number | null
   rotationSnap?: number | null
   scaleSnap?: number | null
+  constraint?: (target: THREE.Object3D) => void
 }
 
 /**

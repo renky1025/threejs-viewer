@@ -28,6 +28,8 @@ const DEFAULT_CAMERA_OPTIONS: Required<CameraOptions> = {
   position: [0, 2, 5]
 }
 
+const MAX_PIXEL_RATIO = 2
+
 /**
  * 场景管理器类
  */
@@ -39,6 +41,7 @@ export class SceneManager {
   private container: HTMLDivElement
   private animationId: number | null = null
   private resizeHandler: (() => void) | null = null
+  private resizeObserver: ResizeObserver | null = null
   private composer: EffectComposer | null = null
   private renderPass: RenderPass | null = null
   private bloomPass: UnrealBloomPass | null = null
@@ -70,8 +73,10 @@ export class SceneManager {
     // 创建渲染器
     this.renderer = new THREE.WebGLRenderer({
       antialias: sceneOpts.antialias,
-      alpha: sceneOpts.alpha
+      alpha: sceneOpts.alpha,
+      powerPreference: 'high-performance'
     })
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO))
     this.renderer.setSize(container.clientWidth, container.clientHeight)
     this.renderer.shadowMap.enabled = sceneOpts.shadowMapEnabled
     this.renderer.shadowMap.type = sceneOpts.shadowMapType
@@ -129,15 +134,26 @@ export class SceneManager {
    * 设置窗口大小变化处理
    */
   private setupResizeHandler(): void {
-    this.resizeHandler = () => {
-      this.camera.aspect = this.container.clientWidth / this.container.clientHeight
+    const applyResize = () => {
+      const width = this.container.clientWidth
+      const height = this.container.clientHeight
+      if (!width || !height) return
+      this.camera.aspect = width / height
       this.camera.updateProjectionMatrix()
-      this.renderer.setSize(this.container.clientWidth, this.container.clientHeight)
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO))
+      this.renderer.setSize(width, height)
       if (this.composer) {
-        this.composer.setSize(this.container.clientWidth, this.container.clientHeight)
+        this.composer.setSize(width, height)
       }
     }
-    window.addEventListener('resize', this.resizeHandler)
+
+    this.resizeHandler = applyResize
+    window.addEventListener('resize', applyResize)
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => applyResize())
+      this.resizeObserver.observe(this.container)
+    }
   }
 
   /**
@@ -218,7 +234,7 @@ export class SceneManager {
    */
   render(): void {
     this.controls.update()
-    if (this.composer) {
+    if (this.composer && this.bloomPass?.enabled) {
       this.composer.render()
     } else {
       this.renderer.render(this.scene, this.camera)
@@ -280,6 +296,11 @@ export class SceneManager {
     if (this.resizeHandler) {
       window.removeEventListener('resize', this.resizeHandler)
       this.resizeHandler = null
+    }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect()
+      this.resizeObserver = null
     }
 
     // 清理场景中的所有对象

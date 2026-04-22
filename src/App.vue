@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// 根组件，无需额外逻辑
+import AppToast from '@/components/AppToast.vue'
 </script>
 
 <template>
   <el-config-provider>
     <router-view />
+    <AppToast />
   </el-config-provider>
 </template>
 

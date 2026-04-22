@@ -1,41 +1,5 @@
-import type { Model, ModelType } from './types'
-
-function getExtension(url: string | undefined | null): string | null {
-  if (!url) return null
-  const partsAfterHash = url.split('#')
-  const hashPart = partsAfterHash[0] ?? ''
-  const partsAfterQuery = hashPart.split('?')
-  const clean = partsAfterQuery[0] ?? ''
-  if (!clean) return null
-  const idx = clean.lastIndexOf('.')
-  if (idx === -1) return null
-  return clean.slice(idx + 1).toLowerCase()
-}
-
-function resolveModelType(src: string, explicitType?: string): ModelType | null {
-  const type = (explicitType || '').toLowerCase()
-
-  const map: Record<string, ModelType> = {
-    glb: 'glb',
-    gltf: 'gltf',
-    fbx: 'fbx',
-    obj: 'obj',
-    stl: 'stl',
-    step: 'step',
-    stp: 'step',
-    iges: 'iges',
-    igs: 'iges'
-  }
-
-  if (type && map[type]) {
-    return map[type]
-  }
-
-  const ext = getExtension(src)
-  if (!ext) return null
-
-  return map[ext] || null
-}
+import type { Model } from './types'
+import { resolveModelType } from './modelSource'
 
 /**
  * 根据路由查询参数构建远程模型描述
