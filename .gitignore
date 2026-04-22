@@ -13,7 +13,7 @@ dist-ssr
 *.local
 
 public/home/
-
+public/models/
 
 # Editor directories and files
 .vscode/*
