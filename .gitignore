@@ -11,9 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
-
-public/home/
-public/models/
+public/
 
 # Editor directories and files
 .vscode/*
