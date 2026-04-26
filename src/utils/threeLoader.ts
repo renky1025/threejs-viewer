@@ -16,11 +16,9 @@ import {
   SceneGraphBuilder,
   EnvironmentManager,
   MaterialEditorController,
-  createSceneConstraint,
-  addAxesHelper,
-  removeAxesHelper,
-  updateAxesHelperRotation
+  createSceneConstraint
 } from '../core'
+import { AxesHelper } from '../core/helpers/AxesHelper'
 import { prepareRemoteModel } from '../core/cache/RemoteModelLoader'
 import { ClippingController } from '../core/controllers/ClippingController'
 import { ExplodedViewController } from '../core/controllers/ExplodedViewController'
@@ -68,6 +66,7 @@ export async function loadModel(
   let measureController: MeasureController | null = null
   let envManager: EnvironmentManager | null = null
   let materialEditor: MaterialEditorController | null = null
+  let axesHelper: AxesHelper | null = null
   const uuidMap = new Map<string, THREE.Object3D>()
   let isPageVisible = !document.hidden
   let groundGroup: THREE.Group | null = null
@@ -179,12 +178,12 @@ export async function loadModel(
   const sceneManager = new SceneManager(container)
   const { scene, camera, renderer, controls } = sceneManager.getContext()
 
-  // 设置自然的背景色 - 柔和的蓝灰色
-  scene.background = new THREE.Color(0xf0f4f8)
-  scene.fog = new THREE.Fog(0xf0f4f8, 20, 100)
+  // 设置CAD风格的深色背景
+  scene.background = new THREE.Color(0x282c34)
+  scene.fog = new THREE.Fog(0x282c34, 30, 150)
 
-  // 添加地面 - 使用与材质球相同的样式
-  groundGroup = createGround(scene, 'material')
+  // 添加地面
+  groundGroup = createGround(scene, ground)
 
   // 设置与明亮场景匹配的灯光
   // 环境光 - 更亮
@@ -327,7 +326,9 @@ export async function loadModel(
     }
 
     // 更新三轴辅助器的旋转（跟随相机）
-    updateAxesHelperRotation(camera)
+    if (axesHelper) {
+      axesHelper.updateRotation(camera)
+    }
 
     sceneManager.render()
   }
@@ -395,8 +396,10 @@ export async function loadModel(
       materialEditor = new MaterialEditorController(group)
       rebuildUuidMap()
 
-      // 添加 XYZ 三轴辅助器到屏幕右上角
-      addAxesHelper(container)
+      // 添加 XYZ 三轴辅助器到屏幕右下角
+      if (!axesHelper) {
+        axesHelper = new AxesHelper(container)
+      }
     }
 
     callbacks.loading(90)
@@ -562,7 +565,10 @@ export async function loadModel(
     }
 
     // 移除坐标轴辅助器
-    removeAxesHelper(scene)
+    if (axesHelper) {
+      axesHelper.dispose()
+      axesHelper = null
+    }
 
     // 清理地面
     if (groundGroup) {

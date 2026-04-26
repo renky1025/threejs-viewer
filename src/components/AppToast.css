@@ -1,36 +1,3 @@
-<template>
-  <div class="app-toast-wrapper">
-    <TransitionGroup name="toast-fade" tag="div" class="app-toast-list">
-      <div
-        v-for="toast in toasts"
-        :key="toast.id"
-        class="app-toast"
-        :class="`app-toast--${toast.type}`"
-        role="status"
-      >
-        <div class="toast-icon">
-          <el-icon v-if="toast.type === 'success'"><CircleCheck /></el-icon>
-          <el-icon v-else-if="toast.type === 'error'"><CircleCloseFilled /></el-icon>
-          <el-icon v-else-if="toast.type === 'warning'"><WarningFilled /></el-icon>
-          <el-icon v-else><InfoFilled /></el-icon>
-        </div>
-        <div class="toast-message">{{ toast.message }}</div>
-        <button class="toast-close" type="button" @click="removeToast(toast.id)">
-          ×
-        </button>
-      </div>
-    </TransitionGroup>
-  </div>
-</template>
-
-<script setup lang="ts">
-import { CircleCheck, CircleCloseFilled, InfoFilled, WarningFilled } from '@element-plus/icons-vue'
-import { useToast } from '@/composables/useToast'
-
-const { toasts, removeToast } = useToast()
-</script>
-
-<style scoped>
 .app-toast-wrapper {
   position: fixed;
   top: 14px;
@@ -58,6 +25,18 @@ const { toasts, removeToast } = useToast()
   color: #ecf6ed;
   box-shadow: 0 16px 30px rgba(7, 25, 12, 0.36);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: toast-fade-in 0.25s ease;
+}
+
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .app-toast--success {
@@ -83,7 +62,6 @@ const { toasts, removeToast } = useToast()
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
   color: #5ce27d;
 }
 
@@ -112,7 +90,7 @@ const { toasts, removeToast } = useToast()
   background: transparent;
   border: 0;
   color: rgba(255, 255, 255, 0.85);
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -120,17 +98,6 @@ const { toasts, removeToast } = useToast()
 
 .toast-close:hover {
   color: #ffffff;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: all 0.25s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px) scale(0.98);
 }
 
 @media (max-width: 768px) {
@@ -144,7 +111,6 @@ const { toasts, removeToast } = useToast()
     width: 16px;
     min-width: 16px;
     height: 16px;
-    font-size: 16px;
   }
 
   .toast-message {
@@ -153,7 +119,6 @@ const { toasts, removeToast } = useToast()
   }
 
   .toast-close {
-    font-size: 13px;
+    font-size: 16px;
   }
 }
-</style>

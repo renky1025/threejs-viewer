@@ -27,7 +27,7 @@ export const VIEW_PRESETS: ViewPresets = {
  */
 export interface CubeControllerOptions {
   size?: number
-  position?: { bottom: number; right: number }
+  position?: { top: number; right: number }
 }
 
 /**
@@ -65,8 +65,8 @@ export class CubeController {
     this.mainCamera = mainCamera
     this.mainControls = mainControls
 
-    const size = options.size ?? 240
-    const position = options.position ?? { bottom: 20, right: 20 }
+    const size = options.size ?? 160 // CAD software usually uses smaller cubes
+    const position = options.position ?? { top: 20, right: 20 }
 
     // 创建立方体场景
     this.scene = new THREE.Scene()
@@ -95,7 +95,7 @@ export class CubeController {
     this.cubeContainer = document.createElement('div')
     this.cubeContainer.style.cssText = `
       position: absolute;
-      bottom: ${position.bottom}px;
+      top: ${position.top}px;
       right: ${position.right}px;
       width: ${size}px;
       height: ${size}px;

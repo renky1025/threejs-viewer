@@ -1,155 +1,104 @@
-# 3D 模型查看器
+# 3D 工业级模型查看器 (React + Three.js)
 
-基于 Three.js 和 Vue 3 的 3D 模型查看器，支持多种 3D 模型格式的加载、查看和交互。
-![列表](/images/listimage.png "列表")
-![3d viewer](/images/image.png "3d viewer")
+基于 Three.js 和 React 重构的工业级 3D 模型查看器。拥有媲美专业 CAD 软件（如 AutoCAD、SolidWorks）的视口交互体验、高保真 PBR 物理材质渲染，以及布料物理模拟功能。
 
-## 技术栈
+## 🌟 核心特性
 
-- **前端框架**: Vue 3 + TypeScript + Vue Router
-- **UI 组件库**: Element Plus
-- **3D 渲染**: Three.js + three-mesh-bvh (高性能BVH加速)
-- **构建工具**: Vite
-- **状态管理**: Pinia
-- **CAD支持**: occt-import-js (STEP/IGES格式)
+### 1. 工业级 CAD 视口交互
+- **专业环境**：暗色系（Dark Theme）专业工作区背景，配合深色无限延伸地平面网格，有效降低视觉疲劳。
+- **ViewCube 视角控制器**：位于屏幕右上角的交互式立方体，通过拖拽或点击面块，可实现无缝的正交/透视视角快速切换。
+- **动态三轴指示器 (AxesHelper)**：位于屏幕右下角，全局实时同步当前摄影机的空间姿态，提供极佳的空间坐标系参考。
+- **平移、旋转、缩放**：带有自动阻尼（Damping）和平滑过渡的视口轨道控制器。
 
-## 功能特点
+### 2. 真实材质渲染实验室 (Material Sphere)
+- **高保真光影**：借助 `PMREMGenerator` 和 `RoomEnvironment` 生成真实的物理级环境光遮蔽与反射。
+- **PBR 材质预设**：一键切换 标准金属、磨砂金属、镜面抛光、陶瓷质感、青铜、红宝石透射材质等。
+- **实时属性调节**：提供动态滑块调整金属度 (Metalness)、粗糙度 (Roughness)、透光率 (Transmission)、折射率 (IOR) 和厚度等参数。
 
-### 模型浏览
-- 模型列表展示，支持筛选、分类和搜索
-- 支持用户上传本地 3D 文件并直接网页预览
-- 支持多种模型格式: OBJ, FBX, GLTF, GLB, STL, STEP, IGES
+### 3. 高级物理模拟：动态布料掉落 (Cloth Physics)
+- **柔性体模拟**：基于 Verlet 积分和弹簧质点模型（Mass-Spring System）从零构建的高性能布料物理引擎。
+- **随风舞动效果**：动态生成的正弦风力场，让布料在空中飘落时产生极为逼真的边缘褶皱与摇曳效果。
+- **完美贴合包裹**：高度优化的碰撞检测与摩擦力算法，使布料准确落在材质球表面并“死死粘住”包裹球体，随球体轨道视角一起展现极佳的附着感。
+- **多种布匹材质**：内置“丝绸 (Silk)”、“棉布 (Cotton)”、“牛仔布 (Denim)”物理和材质预设。
 
-### 模型查看功能
-- 平移、旋转、缩放控制
-- 立方体控制器联动
-- 模型加载进度显示
-- 多种地面材质选择
-- 逼真的天空效果
-- 灯光和阴影效果
+### 4. 丰富的高级模型分析工具
+- **支持多格式加载**: OBJ, FBX, GLTF, GLB, STL，以及基于 WebAssembly (occt-import-js) 的工业 CAD 格式 **STEP, IGES**。
+- **爆炸视图 (Exploded View)**: 一键将装配体模型的各个部件呈放射状分离开来，便于查看内部零件结构。
+- **剖切分析 (Clipping)**: 支持多轴面剖切，精准查看模型内部截面结构。
+- **空间测量 (Measurement)**: 高精度拾取模型顶点，测量任意两点之间的真实距离。
+- **场景大纲 (Scene Graph)**: 树状管理模型层级结构，一键控制部件的显示/隐藏、透明度和锁定状态。
+- **压力热力图 (Pressure Visualization)**: 加载 JSON 应力测试数据，以动态热力图映射显示在模型表面。
 
-### 高级功能
-- **爆炸视图**: 将模型的各个部件分离开来查看内部结构
-- **剖切功能**: 支持多平面剖切，查看模型内部截面
-- **测量工具**: 测量模型中两点之间的距离
-- **场景图面板**: 查看和管理模型层级结构
-- **材质编辑**: 实时调整模型材质参数
-- **压力可视化**: 加载 JSON 压力数据，以热力图形式显示在模型表面
+## 🛠 技术栈
 
-### 页面
-- **首页** (`/`): 模型列表展示
-- **模型查看页** (`/model/:name`): 3D模型交互查看
-- **材质球展示** (`/material-sphere`): 材质效果预览
+- **前端框架**: React 18 + TypeScript
+- **构建工具**: Vite + ESModules
+- **3D 渲染**: Three.js
+- **UI/样式**: 纯 CSS (CSS Modules) + 玻璃拟物化设计 (Glassmorphism)
+- **图标库**: lucide-react
+- **状态管理**: Zustand
+- **性能优化**: three-mesh-bvh (加速射线检测与碰撞计算)
 
-## 项目结构
+## 📁 项目架构
 
-```
+```text
 threejs-viewer/
-├── public/                    # 静态资源
-│   ├── assets/               # 图片、纹理等资源
-│   ├── home/                 # 模型分类数据
-│   ├── models/               # 3D 模型文件
-│   └── couch.mtl             # MTL材质文件
+├── public/                    # 静态资源、模型文件与纹理
 ├── src/
-│   ├── components/           # 组件
-│   │   ├── ModelViewer/      # 3D模型查看器组件
-│   │   │   ├── index.vue
-│   │   │   ├── ClippingPanel.vue    # 剖切面板
-│   │   │   ├── ExplodedPanel.vue    # 爆炸视图面板
-│   │   │   ├── MeasurementPanel.vue # 测量工具面板
-│   │   │   ├── SceneGraphPanel.vue  # 场景图面板
-│   │   │   └── ViewerToolbar.vue    # 工具栏
-│   │   ├── PressureViewer/   # 压力可视化组件
-│   │   ├── CubeControl.vue   # 立方体控制器
-│   │   ├── LoadingBar.vue    # 加载进度条
-│   │   ├── ModelList.vue     # 模型列表
-│   │   └── AppToast.vue      # 全局提示
-│   ├── core/                 # 核心3D引擎模块
-│   │   ├── cache/            # 缓存系统
-│   │   ├── constraints/      # 场景约束
-│   │   ├── controllers/      # 控制器(爆炸、剖切、测量等)
-│   │   ├── environment/      # 环境管理(地面、天空、灯光)
-│   │   ├── loaders/          # 模型加载器
-│   │   ├── pipeline/         # 网格处理管道
-│   │   ├── scene/            # 场景管理
-│   │   └── types/            # 类型定义
-│   ├── composables/          # Vue组合式函数
-│   ├── pages/                # 页面
-│   ├── router/               # 路由配置
-│   ├── store/                # 状态管理
-│   ├── utils/                # 工具函数
-│   ├── types/                # TypeScript类型声明
-│   ├── App.vue               # 根组件
-│   └── main.ts               # 入口文件
-├── index.html                # HTML 模板
-├── package.json              # 项目依赖
-├── tsconfig.json             # TypeScript 配置
-└── vite.config.ts            # Vite 配置
+│   ├── components/            # React 业务组件
+│   │   ├── ModelViewer/       # 3D模型主视口组件与面板 (测量, 剖切, 爆炸等)
+│   │   ├── PressureViewer/    # 压力可视化展示组件
+│   │   ├── ModelList.tsx      # 首页模型列表
+│   │   └── AppToast.tsx       # 全局消息提示框
+│   ├── core/                  # 独立于 UI 框架的 3D 核心引擎层
+│   │   ├── cache/             # 远程模型缓存系统
+│   │   ├── constraints/       # 场景级空间约束与贴地算法
+│   │   ├── controllers/       # 控制器 (ViewCube, 测量, 剖切, 爆炸等)
+│   │   ├── environment/       # 环境光、天空盒、地平面与网格生成
+│   │   ├── helpers/           # 辅助器 (如右下角 AxesHelper)
+│   │   ├── loaders/           # 统一模型加载与解析器
+│   │   ├── scene/             # 场景结构管理与树状构建
+│   │   └── types/             # 核心类型定义
+│   ├── pages/                 # 路由页面
+│   │   ├── Home.tsx           # 主页 (列表与上传入口)
+│   │   ├── ModelPage.tsx      # 模型查看器与压力热力图分流页
+│   │   └── MaterialSphere.tsx # 真实材质与物理布料实验室
+│   ├── utils/                 # 工具函数
+│   │   ├── clothPhysics.ts    # 布料弹簧质点物理模拟引擎
+│   │   ├── threeLoader.ts     # 核心层与 React 视图层的桥梁装配器
+│   │   └── modelSource.ts     # 模型来源类型解析
+│   ├── App.tsx                # 根组件
+│   └── main.tsx               # 应用入口
 ```
 
-## 开发指南
+## 🚀 开发指南
 
-### 安装依赖
+### 环境配置与依赖安装
 
 ```bash
-# 使用 npm
-npm install
-
-# 或使用 pnpm
+# 推荐使用 pnpm
 pnpm install
 ```
 
-### 开发环境运行
+### 本地开发运行
 
 ```bash
-npm run dev
-# 或
 pnpm dev
+# 浏览器将自动打开 http://localhost:5173
 ```
 
-### 构建生产版本
+### 构建生产部署版本
 
 ```bash
-npm run build
-# 或
 pnpm build
-```
-
-### 预览生产构建
-
-```bash
-npm run preview
-# 或
 pnpm preview
 ```
 
-## 模型支持
+## ⚠️ 浏览器兼容性要求
 
-| 格式 | 扩展名 | 说明 |
-|------|--------|------|
-| **GLTF/GLB** | `.gltf`, `.glb` | 推荐的 3D 模型格式，支持材质、动画、PBR等 |
-| **FBX** | `.fbx` | 支持复杂模型和骨骼动画 |
-| **OBJ** | `.obj` | 支持基础几何和材质(MTL) |
-| **STL** | `.stl` | 工业3D打印格式，单色模型 |
-| **STEP** | `.step`, `.stp` | CAD工程格式，通过 occt-import-js 转换 |
-| **IGES** | `.igs`, `.iges` | CAD工程格式，通过 occt-import-js 转换 |
-
-> **注意**: STEP/IGES 格式依赖 WebAssembly 转换，需要浏览器支持 WebAssembly。
-
-## 浏览器兼容性
-
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-需要支持 WebGL 2.0 和 WebAssembly 的现代浏览器。
-
-## 代码规范
-
-- **模块化设计**: 每个文件功能独立，遵循单一职责原则
-- **核心引擎**: `src/core/` 目录包含可复用的3D引擎模块，与Vue解耦
-- **组合式函数**: 使用 Vue 3 Composition API 封装可复用逻辑
-- **类型安全**: 完整的 TypeScript 类型定义和接口
-- **代码简洁**: 避免冗余，保持代码清晰易懂
-- **BVH优化**: 使用 three-mesh-bvh 进行高性能射线检测
+本系统深度使用了 **WebGL 2.0** 与 **WebAssembly** 级高级特性（尤其是在加载 STEP/IGES 和执行复杂的网格 BVH 运算时）。
+请确保使用以下现代浏览器：
+- Google Chrome 90+
+- Mozilla Firefox 88+
+- Apple Safari 14+
+- Microsoft Edge 90+

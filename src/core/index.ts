@@ -18,7 +18,7 @@ export { CubeController, createSimpleCubeControl, VIEW_PRESETS } from './control
 export { MaterialEditorController } from './controllers/MaterialEditorController'
 
 // 辅助器
-export { addAxesHelper, removeAxesHelper, updateAxesHelperRotation } from './helpers/AxesHelper'
+export { AxesHelper } from './helpers/AxesHelper'
 
 // 环境
 export { LightingManager, setupLighting } from './environment/Lighting'

@@ -72,10 +72,10 @@ export function createGround(
  * 创建简洁网格地面（参考图片样式 - 浅灰白色地面 + 浅灰网格线）
  */
 function createMinimalGridGround(group: THREE.Group, opts: Required<GroundOptions>): void {
-  // 创建浅灰白色地面（接近白色）
+  // 创建深灰色地面（与CAD背景融合）
   const geometry = new THREE.PlaneGeometry(opts.size, opts.size)
   const material = new THREE.MeshStandardMaterial({
-    color: 0xffffff, // 非常浅的灰白色
+    color: 0x282c34, 
     roughness: 1.0,
     metalness: 0.0,
     side: THREE.DoubleSide
@@ -87,13 +87,13 @@ function createMinimalGridGround(group: THREE.Group, opts: Required<GroundOption
   groundMesh.receiveShadow = true
   group.add(groundMesh)
 
-  // 创建网格线（深灰色，清晰可见）
+  // 创建网格线（CAD深灰色风格）
   if (opts.showGrid) {
     const gridHelper = new THREE.GridHelper(
       opts.size,
-      opts.divisions,
-      0x888888, // 深灰色网格线
-      0x888888  // 深灰色网格线
+      opts.divisions * 2, // 增加网格密度，更像CAD
+      0x555555, // 中心线
+      0x3a3f4a  // 网格线
     )
     gridHelper.position.y = 0
     // 网格线不透明，清晰可见

@@ -1,52 +1,54 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="alternate icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D模型查看器 - 在线3D模型查看和交互平台</title>
-    <meta name="description" content="免费的在线3D模型查看器，支持OBJ、FBX、GLTF、GLB、STL、STEP、IGES等多种格式。提供逼真的3D渲染、交互控制和模型分析功能。" />
-    <meta name="keywords" content="3D模型查看器,3D模型,OBJ,FBX,GLTF,GLB,STL,STEP,IGES,Three.js,Vue.js,3D渲染,在线3D查看器" />
-    <meta name="author" content="3D模型查看器团队" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="zh-CN" />
-    <link rel="canonical" href="https://viewer.ftmi.info/" />
 
-    <!-- Open Graph 标签 -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="3D模型查看器 - 在线3D模型查看和交互平台" />
-    <meta property="og:description" content="免费的在线3D模型查看器，支持OBJ、FBX、GLTF、GLB、STL、STEP、IGES等多种格式。提供逼真的3D渲染、交互控制和模型分析功能。" />
-    <meta property="og:url" content="https://viewer.ftmi.info/" />
-    <meta property="og:image" content="https://viewer.ftmi.info/images/image.png" />
-    <meta property="og:site_name" content="3D模型查看器" />
-    <meta property="og:locale" content="zh_CN" />
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" href="/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D模型查看器 - 在线3D模型查看和交互平台</title>
+  <meta name="description" content="免费的在线3D模型查看器，支持OBJ、FBX、GLTF、GLB、STL、STEP、IGES等多种格式。提供逼真的3D渲染、交互控制和模型分析功能。" />
+  <meta name="keywords" content="3D模型查看器,3D模型,OBJ,FBX,GLTF,GLB,STL,STEP,IGES,Three.js,Vue.js,3D渲染,在线3D查看器" />
+  <meta name="author" content="3D模型查看器团队" />
+  <meta name="robots" content="index, follow" />
+  <meta name="language" content="zh-CN" />
+  <link rel="canonical" href="https://3d.coworkai.info/" />
 
-    <!-- Twitter Card 标签 -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="3D模型查看器 - 在线3D模型查看和交互平台" />
-    <meta name="twitter:description" content="免费的在线3D模型查看器，支持OBJ、FBX、GLTF、GLB、STL、STEP、IGES等多种格式。" />
-    <meta name="twitter:image" content="https://viewer.ftmi.info/images/image.png" />
-      <!-- Google Analytics 代码 -->
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-7N0J9CLCKV"></script>
-      <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'G-7N0J9CLCKV');
-      </script>
-  
-      <!-- Google AdSense 代码 -->
-      <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7493748311001547"></script>
+  <!-- Open Graph 标签 -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="3D模型查看器 - 在线3D模型查看和交互平台" />
+  <meta property="og:description" content="免费的在线3D模型查看器，支持OBJ、FBX、GLTF、GLB、STL、STEP、IGES等多种格式。提供逼真的3D渲染、交互控制和模型分析功能。" />
+  <meta property="og:url" content="https://3d.coworkai.info/" />
+  <meta property="og:image" content="https://3d.coworkai.info/images/image.png" />
+  <meta property="og:site_name" content="3D模型查看器" />
+  <meta property="og:locale" content="zh_CN" />
 
-      <!-- 结构化数据 -->
-      <script type="application/ld+json">
+  <!-- Twitter Card 标签 -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="3D模型查看器 - 在线3D模型查看和交互平台" />
+  <meta name="twitter:description" content="免费的在线3D模型查看器，支持OBJ、FBX、GLTF、GLB、STL、STEP、IGES等多种格式。" />
+  <meta name="twitter:image" content="https://3d.coworkai.info/images/image.png" />
+  <!-- Google Analytics 代码 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7N0J9CLCKV"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-7N0J9CLCKV');
+  </script>
+
+  <!-- Google AdSense 代码 -->
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7493748311001547"></script>
+
+  <!-- 结构化数据 -->
+  <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "3D模型查看器",
         "description": "免费的在线3D模型查看器，支持多种3D模型格式的加载、查看和交互",
-        "url": "https://viewer.ftmi.info",
+        "url": "https://3d.coworkai.info",
         "applicationCategory": "WebApplication",
         "operatingSystem": "Web Browser",
         "offers": {
@@ -67,17 +69,19 @@
         ],
         "author": {
           "@type": "Organization",
-          "name": "kangyao.ren@ftmi.info"
+          "name": "kangyao.ren@coworkai.info"
         },
         "publisher": {
           "@type": "Organization",
-          "name": "kangyao.ren@ftmi.info"
+          "name": "kangyao.ren@coworkai.info"
         }
       }
       </script>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

@@ -4,30 +4,25 @@
  */
 import * as THREE from 'three'
 
-// 保存axes helper的引用
-let axesHelperInstance: AxesHelper | null = null
-
 /**
  * 屏幕空间三轴辅助器类
  */
-class AxesHelper {
+export class AxesHelper {
   private scene: THREE.Scene
   private camera: THREE.OrthographicCamera
   private renderer: THREE.WebGLRenderer
   private container: HTMLDivElement
   private axesGroup: THREE.Group
-  private size: number
   private pixelRatio: number
 
   constructor(container: HTMLDivElement, size: number = 80) {
-    this.size = size
     this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2)
 
     // 创建容器 - 定位在右上角
     this.container = document.createElement('div')
     this.container.style.cssText = `
       position: absolute;
-      top: 20px;
+      bottom: 20px;
       right: 20px;
       width: ${size}px;
       height: ${size}px;
@@ -257,43 +252,4 @@ class AxesHelper {
   }
 }
 
-/**
- * 添加三轴辅助器到场景（显示在屏幕右上角）
- * @param container 主容器DOM元素
- */
-export function addAxesHelper(container: HTMLDivElement): void {
-  // 如果已存在，先移除
-  removeAxesHelper()
 
-  // 创建新的axes helper
-  axesHelperInstance = new AxesHelper(container)
-}
-
-/**
- * 更新三轴辅助器的旋转（跟随相机）
- * @param camera 主场景相机
- */
-export function updateAxesHelperRotation(camera: THREE.Camera): void {
-  if (axesHelperInstance) {
-    axesHelperInstance.updateRotation(camera)
-  }
-}
-
-/**
- * 渲染三轴辅助器
- */
-export function renderAxesHelper(): void {
-  if (axesHelperInstance) {
-    axesHelperInstance.render()
-  }
-}
-
-/**
- * 清理三轴辅助器
- */
-export function removeAxesHelper(): void {
-  if (axesHelperInstance) {
-    axesHelperInstance.dispose()
-    axesHelperInstance = null
-  }
-}
